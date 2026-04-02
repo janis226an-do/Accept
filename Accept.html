@@ -1,0 +1,561 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2299.77">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!DOCTYPE html&gt;</p>
+<p class="p1">&lt;html lang="ru"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;Сверка счетов: номер, дата, сумма&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"&gt;&lt;/script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>* {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>box-sizing: border-box;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>body {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin: 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>min-height: 100vh;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>justify-content: center;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>align-items: center;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 1.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.card {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>max-width: 1300px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>width: 100%;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: rgba(255,255,255,0.95);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25), 0 4px 12px rgba(0,0,0,0.05);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>overflow: hidden;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.header {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #1e2f4e;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 1.5rem 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: white;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.header h1 {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin: 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 600;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 1.8rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.header p {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin: 0.5rem 0 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>opacity: 0.85;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 0.95rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.content {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.upload-grid {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-wrap: wrap;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>gap: 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.upload-box {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex: 1;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>min-width: 280px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #f9fafc;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 1.25rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: 1px solid #e2e8f0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 1.25rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>transition: box-shadow 0.2s;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.upload-box h3 {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 0;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 1.3rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 600;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #0f2b3d;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>align-items: center;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>gap: 0.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.file-label {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-direction: column;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>gap: 0.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>input[type="file"] {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: 1px solid #cbd5e1;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0.6rem 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: white;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 0.85rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>cursor: pointer;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.extracted-info {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: white;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0.8rem 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-left: 4px solid #3b82f6;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 0.9rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 0 1px 2px rgba(0,0,0,0.05);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.info-row {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>justify-content: space-between;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 0.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-wrap: wrap;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>gap: 0.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.info-label {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 600;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #1e293b;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.info-value {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-family: 'SF Mono', monospace;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #0f3b2c;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #f1f5f9;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0.2rem 0.6rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>word-break: break-all;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.badge {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 0.75rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #eef2ff;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0.2rem 0.7rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #1e40af;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.result-area {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #ffffff;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 1.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 1.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 1rem 1.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 0 8px 20px rgba(0,0,0,0.05);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: 1px solid #eef2ff;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.result-item {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #f8fafc;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0.75rem 1.25rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-bottom: 0.75rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: flex;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>align-items: baseline;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>justify-content: space-between;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>flex-wrap: wrap;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>gap: 0.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.result-label {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 700;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #0f172a;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.result-status {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 700;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 1.2rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0.2rem 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.status-ok {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #dcfce7;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #15803d;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.status-fail {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #fee2e2;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #b91c1c;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.status-error {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #fff3bf;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #b45309;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.compare-btn {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #1e2f4e;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: none;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding: 0.8rem 2rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-weight: 600;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: white;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 3rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>cursor: pointer;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>transition: all 0.2s;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>width: 100%;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.compare-btn:hover {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>background: #0f2b3d;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>transform: translateY(-1px);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.loading {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>display: inline-block;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>width: 18px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>height: 18px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border: 2px solid #cbd5e1;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 50%;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-top-color: #1e2f4e;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>animation: spin 0.6s linear infinite;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-left: 8px;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>vertical-align: middle;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>@keyframes spin { to { transform: rotate(360deg); } }</p>
+<p class="p1"><span class="Apple-converted-space">        </span>.footnote {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>font-size: 0.75rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>text-align: center;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>margin-top: 1.5rem;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>color: #5b6e8c;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>border-top: 1px solid #e2edf2;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>padding-top: 1rem;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1">&lt;div class="card"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="header"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;h1&gt;📄 Сверка счетов на оплату&lt;/h1&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;p&gt;Загрузите два PDF-файла (счет/документ). Автоматически распознаем номер, дату и итоговую сумму. Сравнение по каждому полю отдельно.&lt;/p&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="content"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="upload-grid"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;!-- PDF 1 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="upload-box"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;h3&gt;📎 Документ №1&lt;/h3&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="file-label"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;input type="file" id="pdf1Input" accept="application/pdf"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div id="pdf1Status" class="extracted-info" style="border-left-color: #3b82f6;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;📌 Номер счета:&lt;/span&gt;&lt;span class="info-value" id="pdf1Number"&gt;—&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;📅 Дата счета:&lt;/span&gt;&lt;span class="info-value" id="pdf1Date"&gt;—&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;💰 Сумма:&lt;/span&gt;&lt;span class="info-value" id="pdf1Amount"&gt;—&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;⚙️ Статус:&lt;/span&gt;&lt;span id="pdf1Msg" class="badge"&gt;Ожидание загрузки&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;!-- PDF 2 --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="upload-box"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;h3&gt;📎 Документ №2&lt;/h3&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div class="file-label"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;input type="file" id="pdf2Input" accept="application/pdf"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;div id="pdf2Status" class="extracted-info" style="border-left-color: #ef4444;"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;📌 Номер счета:&lt;/span&gt;&lt;span class="info-value" id="pdf2Number"&gt;—&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;📅 Дата счета:&lt;/span&gt;&lt;span class="info-value" id="pdf2Date"&gt;—&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;💰 Сумма:&lt;/span&gt;&lt;span class="info-value" id="pdf2Amount"&gt;—&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>&lt;div class="info-row"&gt;&lt;span class="info-label"&gt;⚙️ Статус:&lt;/span&gt;&lt;span id="pdf2Msg" class="badge"&gt;Ожидание загрузки&lt;/span&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="result-area"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="result-item"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="result-label"&gt;🧾 Номер счёта на оплату:&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span id="resultNumber" class="result-status"&gt;—&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="result-item"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="result-label"&gt;📅 Дата счёта на оплату:&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span id="resultDate" class="result-status"&gt;—&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;div class="result-item"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span class="result-label"&gt;💰 Сумма:&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>&lt;span id="resultAmount" class="result-status"&gt;—&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>&lt;button id="compareBtn" class="compare-btn"&gt;🔄 Сравнить документы&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="footnote"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>🔍 Распознавание: номер ищется по фразам "Счет №", "№"; дата — в формате дд.мм.гггг; сумма — итоговая сумма к оплате (число с копейками). Если значение не найдено — считается ошибкой.</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
+<p class="p1">&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1">&lt;script&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Хранилище данных для двух PDF</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdfData = [</p>
+<p class="p1"><span class="Apple-converted-space">        </span>{ file: null, text: '', number: null, date: null, amount: null, loaded: false, error: false },</p>
+<p class="p1"><span class="Apple-converted-space">        </span>{ file: null, text: '', number: null, date: null, amount: null, loaded: false, error: false }</p>
+<p class="p1"><span class="Apple-converted-space">    </span>];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// DOM элементы</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf1Input = document.getElementById('pdf1Input');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf2Input = document.getElementById('pdf2Input');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const compareBtn = document.getElementById('compareBtn');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Элементы отображения для каждого документа</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf1NumberSpan = document.getElementById('pdf1Number');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf1DateSpan = document.getElementById('pdf1Date');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf1AmountSpan = document.getElementById('pdf1Amount');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf1MsgSpan = document.getElementById('pdf1Msg');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf2NumberSpan = document.getElementById('pdf2Number');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf2DateSpan = document.getElementById('pdf2Date');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf2AmountSpan = document.getElementById('pdf2Amount');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const pdf2MsgSpan = document.getElementById('pdf2Msg');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Элементы результатов сравнения</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const resultNumberSpan = document.getElementById('resultNumber');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const resultDateSpan = document.getElementById('resultDate');</p>
+<p class="p1"><span class="Apple-converted-space">    </span>const resultAmountSpan = document.getElementById('resultAmount');</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Извлечение текста из PDF</p>
+<p class="p1"><span class="Apple-converted-space">    </span>async function extractTextFromPDF(file) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!file) return null;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const arrayBuffer = await file.arrayBuffer();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const pdf = await loadingTask.promise;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let fullText = '';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>for (let i = 1; i &lt;= pdf.numPages; i++) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const page = await pdf.getPage(i);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const content = await page.getTextContent();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>fullText += content.items.map(item =&gt; item.str).join(' ') + '\n';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return fullText;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Извлечение номера счета</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function extractNumber(text) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!text) return null;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const patterns = [</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/Счет\s*(?:№|N|номер)\s*[:.]?\s*([\d\-\/]+[A-Za-z0-9\-]*)/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/СЧЕТ\s*(?:№|N|НОМЕР)\s*[:.]?\s*([\d\-\/]+[A-Za-z0-9\-]*)/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/Счет\s*№\s*([\d\-\/]+[A-Za-z0-9\-]*)/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/№\s*([\d\-\/]+[A-Za-z0-9\-]*)/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/Номер\s*счета\s*[:.]?\s*([\d\-\/]+[A-Za-z0-9\-]*)/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/Invoice\s*(?:Number|No\.?)\s*[:.]?\s*([\d\-\/]+[A-Za-z0-9\-]*)/i</p>
+<p class="p1"><span class="Apple-converted-space">        </span>];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>for (let pattern of patterns) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const match = text.match(pattern);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (match &amp;&amp; match[1]) return match[1].trim();</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const fallback = text.match(/(?:счет|Счет|СЧЕТ|№)[^\d]*(\d[\d\-\/]{2,20})/i);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return fallback ? fallback[1].trim() : null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Извлечение даты (приоритет: рядом с "дата", "от")</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function extractDate(text) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!text) return null;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const datePattern = /(\d{2}\.\d{2}\.\d{4})|(\d{2}\/\d{2}\/\d{4})|(\d{4}-\d{2}-\d{2})/g;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const allDates = [];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let match;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>while ((match = datePattern.exec(text)) !== null) allDates.push(match[0]);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (allDates.length === 0) return null;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>let bestDate = null;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>let bestIndex = Infinity;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>for (let d of allDates) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const pos = text.indexOf(d);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const contextStart = Math.max(0, pos - 60);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const context = text.substring(contextStart, pos + 20).toLowerCase();</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (context.includes('дата') || context.includes('от') || context.includes('счет') || context.includes('составлен')) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (pos &lt; bestIndex) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>bestIndex = pos;</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>bestDate = d;</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return bestDate || allDates[0];</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Извлечение суммы (итоговая сумма к оплате)</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function extractAmount(text) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!text) return null;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Ищем фразы, после которых идёт число с копейками</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const amountPatterns = [</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/(?:Итого|Всего|Сумма|Total|Amount|К оплате|к оплате|ИТОГО|ВСЕГО)\s*[:.]?\s*([\d\s]+[.,]\d{2})\s*(?:руб|р\.|₽|eur|usd)?/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/(?:Сумма\s*счета|Счет\s*на\s*сумму)\s*[:.]?\s*([\d\s]+[.,]\d{2})/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/(?:к\s*оплате|оплате\s*подлежит)\s*[:.]?\s*([\d\s]+[.,]\d{2})/i,</p>
+<p class="p1"><span class="Apple-converted-space">            </span>/(?:Total\s+amount|Amount\s+due)\s*[:.]?\s*([\d\s]+[.,]\d{2})/i</p>
+<p class="p1"><span class="Apple-converted-space">        </span>];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>for (let pattern of amountPatterns) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const match = text.match(pattern);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (match &amp;&amp; match[1]) {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>let raw = match[1].trim();</p>
+<p class="p1"><span class="Apple-converted-space">                </span>// Убираем пробелы, заменяем запятую на точку</p>
+<p class="p1"><span class="Apple-converted-space">                </span>raw = raw.replace(/\s/g, '');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>raw = raw.replace(',', '.');</p>
+<p class="p1"><span class="Apple-converted-space">                </span>// Проверяем, что это число с двумя знаками после точки</p>
+<p class="p1"><span class="Apple-converted-space">                </span>if (/^\d+(\.\d{1,2})?$/.test(raw)) {</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>// Добиваем до двух знаков после точки</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>let num = parseFloat(raw);</p>
+<p class="p1"><span class="Apple-converted-space">                    </span>if (!isNaN(num)) return num.toFixed(2);</p>
+<p class="p1"><span class="Apple-converted-space">                </span>}</p>
+<p class="p1"><span class="Apple-converted-space">                </span>return raw; // на случай если не распарсилось</p>
+<p class="p1"><span class="Apple-converted-space">            </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Fallback: ищем любое число с двумя знаками после запятой/точки, возможно рядом с рублём</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const fallback = text.match(/(\d[\d\s]*[.,]\d{2})\s*(?:руб|р\.|₽)/i);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (fallback) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>let raw = fallback[1].replace(/\s/g, '').replace(',', '.');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>let num = parseFloat(raw);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (!isNaN(num)) return num.toFixed(2);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return null;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Нормализация для сравнения</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function normalizeString(s) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : '';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Сравнение двух значений и возврат статуса</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function compareFields(val1, val2) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (val1 === null || val2 === null) return 'error'; // не удалось распознать хотя бы одно</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const norm1 = normalizeString(val1);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const norm2 = normalizeString(val2);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>return norm1 === norm2 ? 'ok' : 'fail';</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Обновление UI для конкретного документа</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function updateDocUI(index) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const data = pdfData[index];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const numberSpan = index === 0 ? pdf1NumberSpan : pdf2NumberSpan;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const dateSpan = index === 0 ? pdf1DateSpan : pdf2DateSpan;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const amountSpan = index === 0 ? pdf1AmountSpan : pdf2AmountSpan;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const msgSpan = index === 0 ? pdf1MsgSpan : pdf2MsgSpan;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!data.loaded &amp;&amp; !data.error) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>numberSpan.innerText = '—';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>dateSpan.innerText = '—';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>amountSpan.innerText = '—';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.innerText = 'Ожидание загрузки';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.style.background = '#f1f5f9';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (data.error) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>numberSpan.innerText = '⚠️ ошибка';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>dateSpan.innerText = '⚠️ ошибка';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>amountSpan.innerText = '⚠️ ошибка';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.innerText = 'Ошибка PDF / не удалось распознать';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.style.background = '#fee2e2';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>numberSpan.innerText = data.number || '❌ не найден';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>dateSpan.innerText = data.date || '❌ не найдена';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>amountSpan.innerText = data.amount ? `${data.amount} руб.` : '❌ не найдена';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const missing = [];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!data.number) missing.push('номер');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!data.date) missing.push('дата');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!data.amount) missing.push('сумма');</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (missing.length) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.innerText = `⚠️ Не найдено: ${missing.join(', ')}`;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.style.background = '#fff3bf';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.innerText = '✓ Распознано успешно';</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpan.style.background = '#dcfce7';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Загрузка и обработка PDF</p>
+<p class="p1"><span class="Apple-converted-space">    </span>async function loadAndProcessPDF(file, index) {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!file) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>pdfData[index] = { ...pdfData[index], file: null, text: '', number: null, date: null, amount: null, loaded: false, error: false };</p>
+<p class="p1"><span class="Apple-converted-space">            </span>updateDocUI(index);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>const msgSpan = index === 0 ? pdf1MsgSpan : pdf2MsgSpan;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>msgSpan.innerHTML = '⏳ Разбор PDF... &lt;span class="loading"&gt;&lt;/span&gt;';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>msgSpan.style.background = '#eef2ff';</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>try {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const extractedText = await extractTextFromPDF(file);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>if (!extractedText || extractedText.trim() === '') throw new Error('Не удалось извлечь текст');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const number = extractNumber(extractedText);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const date = extractDate(extractedText);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const amount = extractAmount(extractedText);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>pdfData[index] = {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>file,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>text: extractedText,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>number,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>date,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>amount,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>loaded: true,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>error: false</p>
+<p class="p1"><span class="Apple-converted-space">            </span>};</p>
+<p class="p1"><span class="Apple-converted-space">            </span>updateDocUI(index);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>} catch (err) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>console.error(`PDF ${index+1} error:`, err);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>pdfData[index] = {</p>
+<p class="p1"><span class="Apple-converted-space">                </span>file,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>text: '',</p>
+<p class="p1"><span class="Apple-converted-space">                </span>number: null,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>date: null,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>amount: null,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>loaded: false,</p>
+<p class="p1"><span class="Apple-converted-space">                </span>error: true</p>
+<p class="p1"><span class="Apple-converted-space">            </span>};</p>
+<p class="p1"><span class="Apple-converted-space">            </span>updateDocUI(index);</p>
+<p class="p1"><span class="Apple-converted-space">            </span>const msgSpanErr = index === 0 ? pdf1MsgSpan : pdf2MsgSpan;</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpanErr.innerText = '❌ Ошибка: ' + (err.message || 'не удалось прочитать');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>msgSpanErr.style.background = '#fee2e2';</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Обновление результатов сравнения</p>
+<p class="p1"><span class="Apple-converted-space">    </span>function updateComparison() {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const doc1 = pdfData[0];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const doc2 = pdfData[1];</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Функция для установки статуса</p>
+<p class="p1"><span class="Apple-converted-space">        </span>function setResult(element, status, text = null) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>element.innerText = text || (status === 'ok' ? 'верно' : (status === 'fail' ? 'неверно' : 'ошибка'));</p>
+<p class="p1"><span class="Apple-converted-space">            </span>element.className = `result-status status-${status === 'ok' ? 'ok' : (status === 'fail' ? 'fail' : 'error')}`;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Проверка, что оба файла загружены и нет ошибок загрузки</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!doc1.file || !doc2.file) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultNumberSpan, 'error', 'загрузите оба PDF');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultDateSpan, 'error', 'загрузите оба PDF');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultAmountSpan, 'error', 'загрузите оба PDF');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (doc1.error || doc2.error) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultNumberSpan, 'error', 'ошибка обработки');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultDateSpan, 'error', 'ошибка обработки');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultAmountSpan, 'error', 'ошибка обработки');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p1"><span class="Apple-converted-space">        </span>if (!doc1.loaded || !doc2.loaded) {</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultNumberSpan, 'error', 'обработка...');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultDateSpan, 'error', 'обработка...');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>setResult(resultAmountSpan, 'error', 'обработка...');</p>
+<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>// Сравнение по полям</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const numberStatus = compareFields(doc1.number, doc2.number);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const dateStatus = compareFields(doc1.date, doc2.date);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const amountStatus = compareFields(doc1.amount, doc2.amount);</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>setResult(resultNumberSpan, numberStatus);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>setResult(resultDateSpan, dateStatus);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>setResult(resultAmountSpan, amountStatus);</p>
+<p class="p1"><span class="Apple-converted-space">    </span>}</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Обработчики загрузки файлов</p>
+<p class="p1"><span class="Apple-converted-space">    </span>pdf1Input.addEventListener('change', async (e) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const file = e.target.files[0];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>await loadAndProcessPDF(file, 0);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>updateComparison();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>});</p>
+<p class="p1"><span class="Apple-converted-space">    </span>pdf2Input.addEventListener('change', async (e) =&gt; {</p>
+<p class="p1"><span class="Apple-converted-space">        </span>const file = e.target.files[0];</p>
+<p class="p1"><span class="Apple-converted-space">        </span>await loadAndProcessPDF(file, 1);</p>
+<p class="p1"><span class="Apple-converted-space">        </span>updateComparison();</p>
+<p class="p1"><span class="Apple-converted-space">    </span>});</p>
+<p class="p1"><span class="Apple-converted-space">    </span>compareBtn.addEventListener('click', () =&gt; updateComparison());</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>// Инициализация</p>
+<p class="p1"><span class="Apple-converted-space">    </span>updateComparison();</p>
+<p class="p1">&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
