@@ -76,7 +76,7 @@
             <div class="result-item"><span class="result-label">💰 Сумма:</span><span id="resultAmount" class="result-status">—</span></div>
             <button id="compareBtn" class="compare-btn">🔄 Сравнить документы</button>
         </div>
-        <div class="footnote">🔍 Номер ищется по фразам «Счёт №», «Счет №», «Акцептован: Счёт №». Дата — после «от» или в формате дд.мм.гггг. Сумма — итоговая строка или таблица.</div>
+        <div class="footnote">🔍 Номер ищется по фразам «Счет на оплату», «Счёт на оплату», «Счет №», «Счёт №», а также просто «Счет»/«Счёт». Сумма — итоговая (без отсечения по порогу).</div>
     </div>
 </div>
 <script>
@@ -101,93 +101,91 @@
         return fullText;
     }
 
-    // Улучшенное извлечение номера счета
-    function extractNumber(text) {
+    // Извлечение номера счета (с поддержкой "Счет на оплату", "Счёт на оплату" и просто "Счет"/"Счёт")
+    function extractNumber(text, docType) {
         if (!text) return null;
-        // Приоритет: "Акцептован: Счёт № 548", "Счёт на оплату № 548", "Счет № 548", "№ 548"
-        const patterns = [
-            /Акцептован:\s*Счёт\s*№\s*(\d+)/i,
-            /Счёт\s*на\s*оплату\s*№\s*(\d+)/i,
-            /Счет\s*на\s*оплату\s*№\s*(\d+)/i,
-            /Счёт\s*№\s*(\d+)/i,
-            /Счет\s*№\s*(\d+)/i,
-            /№\s*(\d+)(?:\s+от|\s+[а-я])/i,
-            /Номер\s*счета\s*[:.]?\s*(\d+)/i
-        ];
+        let patterns = [];
+        if (docType === 'accept') {
+            patterns = [
+                /Акцептован:\s*Счёт\s*№\s*(\d+)/i,
+                /Акцептован:\s*Счет\s*№\s*(\d+)/i,
+                /Счёт\s*№\s*(\d+)/i,
+                /Счет\s*№\s*(\d+)/i
+            ];
+        } else {
+            patterns = [
+                /Счет\s*на\s*оплату\s*№\s*(\d+)/i,
+                /Счёт\s*на\s*оплату\s*№\s*(\d+)/i,
+                /Счет\s*№\s*(\d+)/i,
+                /Счёт\s*№\s*(\d+)/i,
+                /Счет\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
+                /Счёт\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
+                /№\s*(\d+)\s+от\s+\d{1,2}/i
+            ];
+        }
         for (let p of patterns) {
             let m = text.match(p);
             if (m) return m[1].trim();
         }
-        // fallback: просто цифры после слова "счет"
-        let fallback = text.match(/(?:счёт|счет)\s*№?\s*(\d+)/i);
-        return fallback ? fallback[1] : null;
-    }
-
-    // Улучшенное извлечение даты: "от 06 марта 2026 г." или "от 06.03.2026" или "06.03.2026"
-    function extractDate(text) {
-        if (!text) return null;
-        // Сначала ищем после "от"
-        let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
-        if (match) {
-            let day = match[1].padStart(2, '0');
-            let monthMap = { 'января':'01', 'февраля':'02', 'марта':'03', 'апреля':'04', 'мая':'05', 'июня':'06', 'июля':'07', 'августа':'08', 'сентября':'09', 'октября':'10', 'ноября':'11', 'декабря':'12' };
-            let month = monthMap[match[2].toLowerCase()];
-            if (month) return `${day}.${month}.${match[3]}`;
-        }
-        // Формат дд.мм.гггг
-        match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
-        // Формат дд/мм/гггг
-        match = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
-        // Формат дд месяц гггг без "от"
-        match = text.match(/(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
-        if (match) {
-            let day = match[1].padStart(2, '0');
-            let monthMap = { 'января':'01', 'февраля':'02', 'марта':'03', 'апреля':'04', 'мая':'05', 'июня':'06', 'июля':'07', 'августа':'08', 'сентября':'09', 'октября':'10', 'ноября':'11', 'декабря':'12' };
-            let month = monthMap[match[2].toLowerCase()];
-            if (month) return `${day}.${month}.${match[3]}`;
-        }
         return null;
     }
 
-    // Извлечение суммы: ищем итоговую строку "Всего ... на сумму 121 381,32 руб." или число в таблице "121 381,32"
-    function extractAmount(text) {
+    // Извлечение даты
+    function extractDate(text) {
         if (!text) return null;
-        // Паттерн "Всего наименование ... на сумму 121 381,32 руб."
-        let match = text.match(/на\s+сумму\s+([\d\s]+[.,]\d{2})\s*руб/i);
+        let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
         if (match) {
-            let raw = match[1].replace(/\s/g, '').replace(',', '.');
-            let num = parseFloat(raw);
-            if (!isNaN(num)) return num.toFixed(2);
+            let day = match[1].padStart(2, '0');
+            const monthMap = {
+                'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06',
+                'июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12'
+            };
+            let month = monthMap[match[2].toLowerCase()];
+            if (month) return `${day}.${month}.${match[3]}`;
         }
-        // Паттерн "Всего ... 121 381,32 руб." без "на сумму"
-        match = text.match(/(?:Всего|ИТОГО)\s+[\d\s]*[\d\s]+([\d\s]+[.,]\d{2})\s*руб/i);
-        if (match) {
-            let raw = match[1].replace(/\s/g, '').replace(',', '.');
-            let num = parseFloat(raw);
-            if (!isNaN(num)) return num.toFixed(2);
-        }
-        // Акцепт: строка таблицы "Сумма" или просто число в строке с руб.
-        match = text.match(/\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i);
-        if (match) {
-            let raw = match[1].replace(/\s/g, '').replace(',', '.');
-            let num = parseFloat(raw);
-            if (!isNaN(num)) return num.toFixed(2);
-        }
-        // Поиск числа с двумя знаками после запятой, рядом с "руб"
-        match = text.match(/(\d[\d\s]*[.,]\d{2})\s*руб/i);
-        if (match) {
-            let raw = match[1].replace(/\s/g, '').replace(',', '.');
-            let num = parseFloat(raw);
-            if (!isNaN(num)) return num.toFixed(2);
-        }
-        // Любое число в формате 123 456,78 или 123456.78
-        let general = text.match(/(\d{1,3}(?:\s\d{3})*[.,]\d{2})/);
-        if (general) {
-            let raw = general[1].replace(/\s/g, '').replace(',', '.');
-            let num = parseFloat(raw);
-            if (!isNaN(num) && num > 0) return num.toFixed(2);
+        match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
+        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
+        match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
+        return null;
+    }
+
+    // Извлечение суммы (без порога, только итоговая)
+    function extractAmount(text, docType) {
+        if (!text) return null;
+        let match = null;
+        if (docType === 'accept') {
+            match = text.match(/\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i);
+            if (match) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) return num.toFixed(2);
+            }
+            match = text.match(/(\d[\d\s]*[.,]\d{2})\s*руб/i);
+            if (match) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) return num.toFixed(2);
+            }
+        } else {
+            match = text.match(/на\s+сумму\s+([\d\s]+[.,]\d{2})\s*руб/i);
+            if (match) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) return num.toFixed(2);
+            }
+            match = text.match(/Всего.*?на\s+сумму\s+([\d\s]+[.,]\d{2})/i);
+            if (match) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) return num.toFixed(2);
+            }
+            match = text.match(/ИТОГО[:]?\s*([\d\s]+[.,]\d{2})/i);
+            if (match) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) return num.toFixed(2);
+            }
         }
         return null;
     }
@@ -198,7 +196,7 @@
         return normalizeString(v1) === normalizeString(v2) ? 'ok' : 'fail';
     }
 
-    async function loadPDF(file, idx) {
+    async function loadPDF(file, idx, docType) {
         if (!file) {
             pdfData[idx] = { file: null, number: null, date: null, amount: null, loaded: false, error: false };
             updateUI(idx);
@@ -209,9 +207,9 @@
         try {
             let text = await extractTextFromPDF(file);
             if (!text || text.trim() === '') throw new Error('Нет текста');
-            let number = extractNumber(text);
+            let number = extractNumber(text, docType);
             let date = extractDate(text);
-            let amount = extractAmount(text);
+            let amount = extractAmount(text, docType);
             pdfData[idx] = { file, number, date, amount, loaded: true, error: false };
             updateUI(idx);
         } catch(e) {
@@ -286,11 +284,11 @@
     }
 
     document.getElementById('pdf1Input').addEventListener('change', async e => {
-        await loadPDF(e.target.files[0], 0);
+        await loadPDF(e.target.files[0], 0, 'invoice');
         updateComparison();
     });
     document.getElementById('pdf2Input').addEventListener('change', async e => {
-        await loadPDF(e.target.files[0], 1);
+        await loadPDF(e.target.files[0], 1, 'accept');
         updateComparison();
     });
     document.getElementById('compareBtn').addEventListener('click', () => updateComparison());
