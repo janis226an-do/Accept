@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Сверка счетов: номер, дата, сумма (с поддержкой сканов + справочник)</title>
+    <title>Сверка счетов: номер, дата, сумма (улучшенное OCR)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -55,7 +54,7 @@
 <body>
 <div class="card">
     <div class="header">
-        <h1>📄 Сверка счетов на оплату</h1>
+        <h1>📄 Сверка счетов на оплату (улучшенное OCR)</h1>
         <div class="tab-buttons">
             <button class="tab-btn active" data-tab="main">Главная</button>
             <button class="tab-btn" data-tab="ref">Справочник</button>
@@ -102,7 +101,7 @@
                 <div id="debugOutput"></div>
             </div>
             <div class="footnote">
-                🔍 Для сканов автоматически запускается OCR. Если данные не распознаются, нажмите «Показать отладку».
+                🔍 Улучшенное распознавание: повышение контраста, бинаризация, поиск номера AP-6079 даже при искажениях.
             </div>
         </div>
         <div id="refTab" class="tab-content">
@@ -122,17 +121,43 @@
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' }
     ];
 
-    async function extractTextFromPDF(file, pageNum, progressElementId) {
+    // Улучшенная предобработка изображения перед OCR
+    async function preprocessImage(canvas) {
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        // Простая бинаризация и повышение контраста
+        for (let i = 0; i < data.length; i += 4) {
+            let r = data[i];
+            let g = data[i+1];
+            let b = data[i+2];
+            let brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+            // Порог: если яркость > 150, делаем белым, иначе чёрным
+            let value = brightness > 150 ? 255 : 0;
+            data[i] = value;
+            data[i+1] = value;
+            data[i+2] = value;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        return canvas;
+    }
+
+    async function extractTextWithOCR(file, pageNum, progressElementId) {
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
+        // Увеличиваем масштаб для лучшего качества
+        const scale = 2.5;
+        const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         await page.render({ canvasContext: context, viewport: viewport }).promise;
+        
+        // Применяем предобработку
+        await preprocessImage(canvas);
         
         const progressDiv = document.getElementById(progressElementId);
         if (progressDiv) {
@@ -176,6 +201,7 @@
         msgSpan.innerHTML = '⏳ Анализ документа... <span class="loading"></span>';
         
         try {
+            // Пытаемся сначала извлечь текст напрямую (для цифровых PDF)
             const arrayBuffer = await file.arrayBuffer();
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdf = await loadingTask.promise;
@@ -183,14 +209,14 @@
             const firstPage = await pdf.getPage(1);
             const textContent = await firstPage.getTextContent();
             let directText = textContent.items.map(item => item.str).join(' ').trim();
-            if (directText && directText.length > 50) {
+            if (directText && directText.length > 100) {
                 extractedText = directText.replace(/\s+/g, ' ');
                 console.log(`PDF.js text extraction successful (${extractedText.length} chars)`);
             } else {
-                console.log("Direct text extraction failed, falling back to OCR.");
-                extractedText = await extractTextFromPDF(file, 1, progressId);
+                console.log("Direct text extraction insufficient, using enhanced OCR.");
+                extractedText = await extractTextWithOCR(file, 1, progressId);
             }
-            if (!extractedText || extractedText.length < 10) throw new Error('Не удалось извлечь текст даже через OCR.');
+            if (!extractedText || extractedText.length < 20) throw new Error('Не удалось извлечь текст.');
             console.log(`=== Extracted Text (${idx === 0 ? 'Invoice' : 'Accept'}) ===`);
             console.log(extractedText.substring(0, 500));
             
@@ -211,55 +237,36 @@
         }
     }
 
-    // Улучшенное извлечение номера: для счёта ищем буквенно-цифровой, игнорируем чисто цифровые если есть буквенный
+    // Улучшенное извлечение номера: ищем AP-6079, АР-6079, AP6079 и т.п. даже с искажениями
     function extractNumber(text, docType) {
         if (!text) return null;
-        if (docType === 'accept') {
-            let match = text.match(/Акцептован:\s*Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/Акцептован:\s*Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/(?:№|No|N)\s*(\d+)/i);
-            if (match) return match[1];
-            return null;
-        } else {
-            // Для счёта: ищем номер вида AP-6079, АР-6079 или просто цифры, но отдаём предпочтение буквенно-цифровому
-            let alnumMatch = text.match(/(?:счет|счёт)\s*№?\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (alnumMatch && alnumMatch[1] && !/^\d+$/.test(alnumMatch[1])) return alnumMatch[1].trim();
-            let simpleMatch = text.match(/([A-Z]{2,3}-\d+)/i);
-            if (simpleMatch) return simpleMatch[1];
-            simpleMatch = text.match(/([А-Я]{2,3}-\d+)/i);
-            if (simpleMatch) return simpleMatch[1];
-            let digitMatch = text.match(/(?:№|No|N)\s*(\d+)/i);
-            if (digitMatch) return digitMatch[1];
-            return null;
+        // Приводим текст к верхнему регистру для упрощения
+        const upperText = text.toUpperCase();
+        // Паттерны для буквенно-цифрового номера
+        let patterns = [
+            /(?:СЧЕТ|СЧЁТ).*?(?:№|NO|N)?\s*([A-ZА-Я]{2,3}[-]?\d+)/i,
+            /(?:АКЦЕПТОВАН):.*?(?:СЧЁТ|СЧЕТ).*?(?:№|NO|N)?\s*([A-ZА-Я]{2,3}[-]?\d+)/i,
+            /([A-ZА-Я]{2,3}[-]?\d{4,5})/,
+            /([A-ZА-Я]{2,3}\d{4,5})/
+        ];
+        for (let p of patterns) {
+            let m = text.match(p);
+            if (m && m[1]) {
+                let candidate = m[1].trim();
+                // Нормализуем: заменяем русскую А на латинскую A, если нужно? Но оставим как есть.
+                return candidate;
+            }
         }
+        // Если не нашли, ищем цифровой номер (как запасной вариант)
+        let digitMatch = text.match(/(?:№|NO|N)\s*(\d+)/i);
+        if (digitMatch) return digitMatch[1];
+        return null;
     }
 
     function extractDate(text, docType) {
         if (!text) return null;
-        let invoiceBlock = null;
-        if (docType !== 'accept') {
-            let matchBlock = text.match(/Счет\s*на\s*оплату\s*(?:№|No|N)\s*[A-Za-zА-Яа-я0-9\-]+\s*от\s*([^\.]{5,50})/i);
-            if (!matchBlock) matchBlock = text.match(/Счет\s*(?:№|No|N)\s*[A-Za-zА-Яа-я0-9\-]+\s*от\s*([^\.]{5,50})/i);
-            if (matchBlock) invoiceBlock = matchBlock[1];
-            if (invoiceBlock) {
-                let dateMatch = invoiceBlock.match(/(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
-                if (dateMatch) {
-                    let day = dateMatch[1].padStart(2, '0');
-                    const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
-                    let month = monthMap[dateMatch[2].toLowerCase()];
-                    if (month) return `${day}.${month}.${dateMatch[3]}`;
-                }
-                let dateMatchDot = invoiceBlock.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-                if (dateMatchDot) return `${dateMatchDot[1]}.${dateMatchDot[2]}.${dateMatchDot[3]}`;
-            }
-        }
-        let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
+        // Ищем "от 11.03.2026" или "от 11 марта 2026"
+        let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
         if (match) {
             let day = match[1].padStart(2, '0');
             const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
@@ -276,66 +283,57 @@
     function extractAmount(text, docType) {
         if (!text) return null;
         let amount = null;
+        let patterns = [];
         if (docType === 'accept') {
-            let patterns = [
+            patterns = [
                 /\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i,
                 /Сумма\s+([\d\s]+[.,]\d{2})/i,
                 /на\s+сумму\s+([\d\s]+[.,]\d{2})/i
             ];
-            for (let p of patterns) {
-                let m = text.match(p);
-                if (m && m[1]) {
-                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num)) { amount = num.toFixed(2); break; }
-                }
-            }
-            if (!amount) {
-                let allNumbers = [];
-                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-                let match;
-                while ((match = regex.exec(text)) !== null) {
-                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num)) allNumbers.push(num);
-                }
-                if (allNumbers.length > 0) amount = Math.max(...allNumbers).toFixed(2);
-            }
         } else {
-            // Для счёта: ищем фразы "сумма в руб. РФ:", "всего с НДС", "Итого:", "Всего к оплате"
-            let patterns = [
+            patterns = [
                 /сумма\s+в\s+руб\.?\s*рф\s*:?\s*([\d\s]+[.,]\d{2})/i,
                 /всего\s+с\s+ндс\s*:?\s*([\d\s]+[.,]\d{2})/i,
                 /Итого:\s*([\d\s]+[.,]\d{2})/i,
                 /Всего\s+к\s+оплате\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
-                /Сумма\s*:?\s*([\d\s]+[.,]\d{2})/i
+                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i
             ];
-            for (let p of patterns) {
-                let m = text.match(p);
-                if (m && m[1]) {
-                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num) && num < 1000000 && num > 100) {
-                        amount = num.toFixed(2);
-                        break;
-                    }
+        }
+        for (let p of patterns) {
+            let m = text.match(p);
+            if (m && m[1]) {
+                let raw = m[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num) && num > 100) {
+                    amount = num.toFixed(2);
+                    break;
                 }
             }
-            if (!amount) {
-                // Ищем все числа, берём последнее, которое не слишком маленькое и не слишком большое
-                let allNumbers = [];
-                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-                let match;
-                while ((match = regex.exec(text)) !== null) {
-                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num) && num > 100 && num < 1000000) allNumbers.push(num);
-                }
-                if (allNumbers.length > 0) {
-                    amount = allNumbers[allNumbers.length - 1].toFixed(2);
-                }
+        }
+        if (!amount && docType !== 'accept') {
+            // Ищем все числа, берём последнее, которое похоже на итог (не слишком маленькое)
+            let allNumbers = [];
+            let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num) && num > 100 && num < 1000000) allNumbers.push(num);
             }
+            if (allNumbers.length > 0) {
+                amount = allNumbers[allNumbers.length - 1].toFixed(2);
+            }
+        }
+        if (!amount && docType === 'accept') {
+            let allNumbers = [];
+            let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) allNumbers.push(num);
+            }
+            if (allNumbers.length > 0) amount = Math.max(...allNumbers).toFixed(2);
         }
         return amount;
     }
@@ -470,7 +468,7 @@
         ];
         function renderTable(title, headers, rows) {
             let html = `<h4>${title}</h4><div class="scrollable"><table class="ref-table">`;
-            html += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+            html += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</td></thead><tbody>`;
             for (let row of rows) {
                 html += `<tr>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`;
             }
