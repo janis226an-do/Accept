@@ -41,7 +41,7 @@
 <div class="card">
     <div class="header">
         <h1>📄 Сверка счетов на оплату</h1>
-        <p>Загрузите счёт на оплату и акцепт. Распознаём номер, дату и сумму. Сравниваем каждое поле отдельно.</p>
+        <p>Загрузите счёт на оплату и акцепт. Распознаём номер, дату и сумму (только первая страница счёта).</p>
     </div>
     <div class="content">
         <div class="upload-grid">
@@ -76,7 +76,7 @@
             <div class="result-item"><span class="result-label">💰 Сумма:</span><span id="resultAmount" class="result-status">—</span></div>
             <button id="compareBtn" class="compare-btn">🔄 Сравнить документы</button>
         </div>
-        <div class="footnote">🔍 Если данные не распознаются, откройте консоль браузера (F12) — там будет виден извлечённый текст и найденные значения.</div>
+        <div class="footnote">🔍 Для счёта анализируется только первая страница. Если данные не распознаются, откройте консоль (F12).</div>
     </div>
 </div>
 <script>
@@ -87,7 +87,22 @@
         { file: null, number: null, date: null, amount: null, loaded: false, error: false }
     ];
 
-    async function extractTextFromPDF(file) {
+    // Извлечение текста только с первой страницы (для счёта)
+    async function extractTextFirstPage(file) {
+        if (!file) return null;
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        const content = await page.getTextContent();
+        let pageText = content.items.map(item => item.str).join(' ');
+        // Нормализация: заменяем все пробельные символы на один пробел
+        pageText = pageText.replace(/\s+/g, ' ').trim();
+        return pageText;
+    }
+
+    // Извлечение текста со всех страниц (для акцепта)
+    async function extractTextAllPages(file) {
         if (!file) return null;
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
@@ -96,37 +111,35 @@
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            // Собираем строки, заменяя возможные разрывы на пробелы
             let pageText = content.items.map(item => item.str).join(' ');
             fullText += pageText + '\n';
         }
-        // Нормализуем текст: заменяем множественные пробелы, табуляции, переносы на один пробел
         fullText = fullText.replace(/\s+/g, ' ').trim();
         return fullText;
     }
 
-    // Универсальное извлечение номера счёта
+    // Извлечение номера счета (гибкое)
     function extractNumber(text, docType) {
         if (!text) return null;
         let patterns = [];
         if (docType === 'accept') {
             patterns = [
-                /Акцептован:\s*Счёт\s*№\s*(\d+)/i,
-                /Акцептован:\s*Счет\s*№\s*(\d+)/i,
-                /Счёт\s*№\s*(\d+)/i,
-                /Счет\s*№\s*(\d+)/i,
-                /№\s*(\d+)/i
+                /Акцептован:\s*Счёт\s*(?:№|No|N)\s*(\d+)/i,
+                /Акцептован:\s*Счет\s*(?:№|No|N)\s*(\d+)/i,
+                /Счёт\s*(?:№|No|N)\s*(\d+)/i,
+                /Счет\s*(?:№|No|N)\s*(\d+)/i,
+                /(?:№|No|N)\s*(\d+)/i
             ];
         } else {
             patterns = [
-                /Счет\s*на\s*оплату\s*№\s*(\d+)/i,
-                /Счёт\s*на\s*оплату\s*№\s*(\d+)/i,
-                /Счет\s*№\s*(\d+)/i,
-                /Счёт\s*№\s*(\d+)/i,
+                /Счет\s*на\s*оплату\s*(?:№|No|N)\s*(\d+)/i,
+                /Счёт\s*на\s*оплату\s*(?:№|No|N)\s*(\d+)/i,
+                /Счет\s*(?:№|No|N)\s*(\d+)/i,
+                /Счёт\s*(?:№|No|N)\s*(\d+)/i,
                 /Счет\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
                 /Счёт\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
-                /№\s*(\d+)\s+от/i,
-                /№\s*(\d+)/i
+                /(?:№|No|N)\s*(\d+)\s+от/i,
+                /(?:№|No|N)\s*(\d+)/i
             ];
         }
         for (let p of patterns) {
@@ -136,10 +149,9 @@
         return null;
     }
 
-    // Извлечение даты (гибкое)
+    // Извлечение даты
     function extractDate(text) {
         if (!text) return null;
-        // Сначала ищем "от 06 марта 2026 г."
         let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
         if (match) {
             let day = match[1].padStart(2, '0');
@@ -150,19 +162,16 @@
             let month = monthMap[match[2].toLowerCase()];
             if (month) return `${day}.${month}.${match[3]}`;
         }
-        // "от 06.03.2026"
         match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
         if (match) return `${match[1]}.${match[2]}.${match[3]}`;
-        // Просто дата в тексте (дд.мм.гггг)
         match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
         if (match) return `${match[1]}.${match[2]}.${match[3]}`;
         return null;
     }
 
-    // Извлечение суммы (самое большое число с двумя знаками после запятой, плюс ключевые фразы)
+    // Извлечение суммы (итоговая сумма, без порога)
     function extractAmount(text, docType) {
         if (!text) return null;
-        // Сначала ищем по ключевым фразам
         let amount = null;
         let patterns = [];
         if (docType === 'accept') {
@@ -175,7 +184,9 @@
             patterns = [
                 /на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
                 /Всего.*?на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
-                /ИТОГО[:]?\s*([\d\s]+[.,]\d{2})/i
+                /ИТОГО[:]?\s*([\d\s]+[.,]\d{2})/i,
+                /Всего\s+к\s+оплате\s+([\d\s]+[.,]\d{2})/i,
+                /Итого:\s*([\d\s]+[.,]\d{2})/i
             ];
         }
         for (let p of patterns) {
@@ -189,8 +200,8 @@
                 }
             }
         }
-        // Если не нашли по фразам, ищем все числа с двумя знаками после запятой и берём максимальное
         if (!amount) {
+            // fallback: берём самое большое число с двумя знаками после запятой
             let allNumbers = [];
             let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
             let match;
@@ -222,9 +233,15 @@
         let msgSpan = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
         msgSpan.innerHTML = '⏳ Разбор PDF... <span class="loading"></span>';
         try {
-            let text = await extractTextFromPDF(file);
+            let text;
+            if (docType === 'invoice') {
+                text = await extractTextFirstPage(file);
+                console.log('=== Только первая страница счёта ===');
+            } else {
+                text = await extractTextAllPages(file);
+                console.log('=== Весь текст акцепта ===');
+            }
             if (!text || text.trim() === '') throw new Error('Нет текста');
-            console.log(`=== Извлечённый текст (${idx === 0 ? 'счёт' : 'акцепт'}) ===`);
             console.log(text);
             let number = extractNumber(text, docType);
             let date = extractDate(text);
