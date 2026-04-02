@@ -3,47 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Сверка счетов: номер, дата, сумма (с поддержкой сканов + справочник)</title>
+    <title>Сверка счетов: ручной ввод счёта + авто акцепт</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
-        body { background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%); margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 1.5rem; }
-        .card { max-width: 1400px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
+        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+        body { background: #eef2f6; margin: 0; padding: 1.5rem; display: flex; justify-content: center; }
+        .card { max-width: 1400px; width: 100%; background: white; border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
         .header { background: #1e2f4e; padding: 1rem 2rem; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .header h1 { margin: 0; font-size: 1.6rem; }
         .tab-buttons { display: flex; gap: 0.5rem; }
-        .tab-btn { background: #2d4a6e; border: none; color: white; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .tab-btn { background: #2d4a6e; border: none; color: white; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
         .tab-btn.active { background: #f59e0b; color: #1e2f4e; }
-        .tab-btn:hover { background: #3b5f8a; }
         .content { padding: 2rem; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .upload-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 2rem; }
-        .upload-box { flex: 1; min-width: 280px; background: #f9fafc; border-radius: 1.25rem; border: 1px solid #e2e8f0; padding: 1.25rem; }
-        .upload-box h3 { margin-top: 0; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600; color: #0f2b3d; display: flex; align-items: center; gap: 0.5rem; }
-        .file-label { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
-        input[type="file"] { border: 1px solid #cbd5e1; border-radius: 2rem; padding: 0.6rem 1rem; background: white; font-size: 0.85rem; cursor: pointer; }
-        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem 1rem; margin-top: 1rem; border-left: 4px solid #3b82f6; font-size: 0.9rem; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
-        .info-label { font-weight: 600; color: #1e293b; }
+        .upload-box { flex: 1; min-width: 300px; background: #f9fafc; border-radius: 1.25rem; border: 1px solid #e2e8f0; padding: 1.25rem; }
+        .upload-box h3 { margin: 0 0 1rem 0; color: #0f2b3d; }
+        .file-label { margin-bottom: 1rem; }
+        input[type="file"] { width: 100%; padding: 0.5rem; border-radius: 2rem; border: 1px solid #cbd5e1; background: white; }
+        .manual-input { margin-top: 1rem; padding: 0.8rem; background: #fef9e3; border-radius: 1rem; border-left: 4px solid #f59e0b; }
+        .manual-input label { font-weight: 600; display: block; margin-top: 0.5rem; }
+        .manual-input input { width: 100%; padding: 0.4rem; border-radius: 1rem; border: 1px solid #cbd5e1; margin-top: 0.2rem; }
+        .manual-input button { background: #f59e0b; border: none; padding: 0.4rem 1rem; border-radius: 2rem; font-weight: 600; cursor: pointer; margin-top: 0.8rem; }
+        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem; margin-top: 1rem; border-left: 4px solid #3b82f6; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; }
+        .info-label { font-weight: 600; }
         .info-value { font-family: monospace; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; }
         .badge { font-size: 0.75rem; background: #eef2ff; border-radius: 1rem; padding: 0.2rem 0.7rem; }
-        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; border: 1px solid #eef2ff; }
-        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem 1.25rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; }
-        .result-label { font-weight: 700; font-size: 1rem; }
-        .result-status { font-weight: 700; font-size: 1.2rem; padding: 0.2rem 1rem; border-radius: 2rem; }
+        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem; border: 1px solid #eef2ff; }
+        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; }
+        .result-status { font-weight: 700; padding: 0.2rem 1rem; border-radius: 2rem; }
         .status-ok { background: #dcfce7; color: #15803d; }
         .status-fail { background: #fee2e2; color: #b91c1c; }
         .status-error { background: #fff3bf; color: #b45309; }
-        .compare-btn, .debug-btn, .ref-btn { background: #1e2f4e; border: none; padding: 0.6rem 1rem; font-weight: 600; color: white; border-radius: 2rem; cursor: pointer; margin-top: 1rem; width: auto; display: inline-block; margin-right: 0.5rem; }
+        .compare-btn, .debug-btn, .ref-btn { background: #1e2f4e; border: none; padding: 0.6rem 1rem; font-weight: 600; color: white; border-radius: 2rem; cursor: pointer; margin-top: 1rem; margin-right: 0.5rem; }
         .debug-btn { background: #4b5563; }
         .ref-btn { background: #f59e0b; color: #1e2f4e; }
         .footnote { font-size: 0.75rem; text-align: center; margin-top: 1.5rem; color: #5b6e8c; }
         .loading { display: inline-block; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 50%; border-top-color: #1e2f4e; animation: spin 0.6s linear infinite; margin-left: 8px; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        progress { width: 100%; height: 10px; border-radius: 5px; margin: 5px 0; }
-        .ocr-progress { font-size: 0.7rem; color: #4b5563; text-align: center; }
         #debugOutput, #refOutput { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 1rem; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin-top: 1rem; max-height: 400px; overflow: auto; display: none; }
         .ref-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
         .ref-table th, .ref-table td { border: 1px solid #cbd5e1; padding: 0.4rem; text-align: left; vertical-align: top; }
@@ -63,19 +63,31 @@
     <div class="content">
         <div id="mainTab" class="tab-content active">
             <div class="upload-grid">
+                <!-- Документ: счёт на оплату (ручной ввод) -->
                 <div class="upload-box">
                     <h3>📎 Документ: счёт на оплату</h3>
                     <div class="file-label">
                         <input type="file" id="pdf1Input" accept="application/pdf">
                     </div>
+                    <div class="manual-input">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem;">✍️ Ручной ввод (поскольку скан распознаётся плохо)</div>
+                        <label>Номер счета:</label>
+                        <input type="text" id="manualNumber" placeholder="Например: АР-6079">
+                        <label>Дата счета (дд.мм.гггг):</label>
+                        <input type="text" id="manualDate" placeholder="11.03.2026">
+                        <label>Сумма (руб):</label>
+                        <input type="text" id="manualAmount" placeholder="22518.15">
+                        <button id="applyManualBtn">✓ Применить вручную</button>
+                    </div>
                     <div id="pdf1Status" class="extracted-info">
                         <div class="info-row"><span class="info-label">📌 Номер счета:</span><span class="info-value" id="pdf1Number">—</span></div>
                         <div class="info-row"><span class="info-label">📅 Дата счета:</span><span class="info-value" id="pdf1Date">—</span></div>
                         <div class="info-row"><span class="info-label">💰 Сумма:</span><span class="info-value" id="pdf1Amount">—</span></div>
-                        <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf1Msg" class="badge">Ожидание загрузки</span></div>
-                        <div id="pdf1Progress" class="ocr-progress" style="display:none;"></div>
+                        <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf1Msg" class="badge">Ожидание ввода</span></div>
                     </div>
                 </div>
+
+                <!-- Документ: акцепт (автоматическое распознавание) -->
                 <div class="upload-box">
                     <h3>📎 Документ: акцепт</h3>
                     <div class="file-label">
@@ -90,6 +102,7 @@
                     </div>
                 </div>
             </div>
+
             <div class="result-area">
                 <div class="result-item"><span class="result-label">🧾 Номер счёта на оплату:</span><span id="resultNumber" class="result-status">—</span></div>
                 <div class="result-item"><span class="result-label">📅 Дата счёта на оплату:</span><span id="resultDate" class="result-status">—</span></div>
@@ -101,9 +114,10 @@
                 <div id="debugOutput"></div>
             </div>
             <div class="footnote">
-                🔍 Для сканов автоматически запускается OCR. Если данные не распознаются, нажмите «Показать отладку».
+                🔍 Для счёта данные вводятся вручную (поскольку скан не распознаётся). Для акцепта — автоматически.
             </div>
         </div>
+
         <div id="refTab" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
                 <h3>📚 Справочная информация (объекты, участки, ГК/ИГК)</h3>
@@ -116,11 +130,13 @@
 <script>
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     
+    // Данные: индекс 0 - счёт (ручной), индекс 1 - акцепт (авто)
     const pdfData = [
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' },
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' }
     ];
 
+    // Для акцепта используем прежнюю логику распознавания
     async function extractTextFromPDF(file, pageNum, progressElementId) {
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
@@ -164,15 +180,15 @@
         return fullText;
     }
 
-    async function loadPDF(file, idx, docType) {
+    async function loadAcceptPDF(file, idx) {
         if (!file) {
             pdfData[idx] = { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' };
             updateUI(idx);
             return;
         }
-        let msgSpan = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
-        let progressId = idx === 0 ? 'pdf1Progress' : 'pdf2Progress';
-        msgSpan.innerHTML = '⏳ Анализ документа... <span class="loading"></span>';
+        let msgSpan = document.getElementById('pdf2Msg');
+        let progressId = 'pdf2Progress';
+        msgSpan.innerHTML = '⏳ Анализ акцепта... <span class="loading"></span>';
         
         try {
             const arrayBuffer = await file.arrayBuffer();
@@ -184,197 +200,150 @@
             let directText = textContent.items.map(item => item.str).join(' ').trim();
             if (directText && directText.length > 50) {
                 extractedText = directText.replace(/\s+/g, ' ');
-                console.log(`PDF.js text extraction successful (${extractedText.length} chars)`);
             } else {
-                console.log("Direct text extraction failed, falling back to OCR.");
                 extractedText = await extractTextFromPDF(file, 1, progressId);
             }
-            if (!extractedText || extractedText.length < 10) throw new Error('Не удалось извлечь текст даже через OCR.');
-            console.log(`=== Extracted Text (${idx === 0 ? 'Invoice' : 'Accept'}) ===`);
-            console.log(extractedText.substring(0, 500));
+            if (!extractedText || extractedText.length < 10) throw new Error('Не удалось извлечь текст из акцепта.');
             
-            let number = extractNumber(extractedText, docType);
-            let date = extractDate(extractedText, docType);
-            let amount = extractAmount(extractedText, docType);
+            // Извлечение номера (буквенно-цифровой)
+            let number = null;
+            let match = extractedText.match(/Акцептован:\s*Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (!match) match = extractedText.match(/Акцептован:\s*Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (!match) match = extractedText.match(/Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (!match) match = extractedText.match(/Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match) number = match[1].trim();
             
-            console.log(`Recognized: number=${number}, date=${date}, amount=${amount}`);
+            // Извлечение даты
+            let date = null;
+            let dMatch = extractedText.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
+            if (dMatch) date = `${dMatch[1]}.${dMatch[2]}.${dMatch[3]}`;
+            else {
+                dMatch = extractedText.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
+                if (dMatch) {
+                    let day = dMatch[1].padStart(2,'0');
+                    const monthMap = {'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12'};
+                    let month = monthMap[dMatch[2].toLowerCase()];
+                    if (month) date = `${day}.${month}.${dMatch[3]}`;
+                }
+            }
+            if (!date) {
+                dMatch = extractedText.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                if (dMatch) date = `${dMatch[1]}.${dMatch[2]}.${dMatch[3]}`;
+            }
+            
+            // Извлечение суммы
+            let amount = null;
+            let aMatch = extractedText.match(/\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i);
+            if (!aMatch) aMatch = extractedText.match(/Сумма\s+([\d\s]+[.,]\d{2})/i);
+            if (!aMatch) aMatch = extractedText.match(/(\d[\d\s]*[.,]\d{2})\s*руб/i);
+            if (aMatch) {
+                let raw = aMatch[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) amount = num.toFixed(2);
+            }
+            
+            console.log(`Акцепт распознан: номер=${number}, дата=${date}, сумма=${amount}`);
             pdfData[idx] = { file, number, date, amount, loaded: true, error: false, rawText: extractedText };
             updateUI(idx);
         } catch (err) {
             console.error(err);
             pdfData[idx] = { file, number: null, date: null, amount: null, loaded: false, error: true, rawText: `Error: ${err.message}` };
             updateUI(idx);
-            let msgSpanErr = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
+            let msgSpanErr = document.getElementById('pdf2Msg');
             msgSpanErr.innerText = '❌ Ошибка: ' + err.message;
-            msgSpanErr.style.background = '#fee2e2';
         }
     }
 
-    // Улучшенное извлечение номера: для счёта ищем буквенно-цифровой, игнорируем чисто цифровые если есть буквенный
-    function extractNumber(text, docType) {
-        if (!text) return null;
-        if (docType === 'accept') {
-            let match = text.match(/Акцептован:\s*Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/Акцептован:\s*Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (match && match[1]) return match[1].trim();
-            match = text.match(/(?:№|No|N)\s*(\d+)/i);
-            if (match) return match[1];
-            return null;
-        } else {
-            // Для счёта: ищем номер вида AP-6079, АР-6079 или просто цифры, но отдаём предпочтение буквенно-цифровому
-            let alnumMatch = text.match(/(?:счет|счёт)\s*№?\s*([A-Za-zА-Яа-я0-9\-]+)/i);
-            if (alnumMatch && alnumMatch[1] && !/^\d+$/.test(alnumMatch[1])) return alnumMatch[1].trim();
-            let simpleMatch = text.match(/([A-Z]{2,3}-\d+)/i);
-            if (simpleMatch) return simpleMatch[1];
-            simpleMatch = text.match(/([А-Я]{2,3}-\d+)/i);
-            if (simpleMatch) return simpleMatch[1];
-            let digitMatch = text.match(/(?:№|No|N)\s*(\d+)/i);
-            if (digitMatch) return digitMatch[1];
-            return null;
-        }
-    }
-
-    function extractDate(text, docType) {
-        if (!text) return null;
-        let invoiceBlock = null;
-        if (docType !== 'accept') {
-            let matchBlock = text.match(/Счет\s*на\s*оплату\s*(?:№|No|N)\s*[A-Za-zА-Яа-я0-9\-]+\s*от\s*([^\.]{5,50})/i);
-            if (!matchBlock) matchBlock = text.match(/Счет\s*(?:№|No|N)\s*[A-Za-zА-Яа-я0-9\-]+\s*от\s*([^\.]{5,50})/i);
-            if (matchBlock) invoiceBlock = matchBlock[1];
-            if (invoiceBlock) {
-                let dateMatch = invoiceBlock.match(/(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
-                if (dateMatch) {
-                    let day = dateMatch[1].padStart(2, '0');
-                    const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
-                    let month = monthMap[dateMatch[2].toLowerCase()];
-                    if (month) return `${day}.${month}.${dateMatch[3]}`;
-                }
-                let dateMatchDot = invoiceBlock.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-                if (dateMatchDot) return `${dateMatchDot[1]}.${dateMatchDot[2]}.${dateMatchDot[3]}`;
-            }
-        }
-        let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
-        if (match) {
-            let day = match[1].padStart(2, '0');
-            const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
-            let month = monthMap[match[2].toLowerCase()];
-            if (month) return `${day}.${month}.${match[3]}`;
-        }
-        match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
-        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
-        match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
-        return null;
-    }
-
-    function extractAmount(text, docType) {
-        if (!text) return null;
+    // Ручной ввод для счёта
+    function applyManual() {
+        let number = document.getElementById('manualNumber').value.trim();
+        let date = document.getElementById('manualDate').value.trim();
+        let amountRaw = document.getElementById('manualAmount').value.trim();
         let amount = null;
-        if (docType === 'accept') {
-            let patterns = [
-                /\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i,
-                /Сумма\s+([\d\s]+[.,]\d{2})/i,
-                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i
-            ];
-            for (let p of patterns) {
-                let m = text.match(p);
-                if (m && m[1]) {
-                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num)) { amount = num.toFixed(2); break; }
-                }
+        if (amountRaw) {
+            let num = parseFloat(amountRaw.replace(',', '.'));
+            if (!isNaN(num)) amount = num.toFixed(2);
+        }
+        pdfData[0] = {
+            file: pdfData[0].file,
+            number: number || null,
+            date: date || null,
+            amount: amount,
+            loaded: true,
+            error: false,
+            rawText: 'Ручной ввод'
+        };
+        updateUI(0);
+        updateComparison();
+    }
+
+    function updateUI(idx) {
+        let d = pdfData[idx];
+        if (idx === 0) {
+            let nSpan = document.getElementById('pdf1Number');
+            let dSpan = document.getElementById('pdf1Date');
+            let aSpan = document.getElementById('pdf1Amount');
+            let mSpan = document.getElementById('pdf1Msg');
+            if (!d.loaded && !d.error) {
+                nSpan.innerText = '—'; dSpan.innerText = '—'; aSpan.innerText = '—';
+                mSpan.innerText = 'Ожидание ввода'; mSpan.style.background = '#eef2ff';
+                return;
             }
-            if (!amount) {
-                let allNumbers = [];
-                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-                let match;
-                while ((match = regex.exec(text)) !== null) {
-                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num)) allNumbers.push(num);
-                }
-                if (allNumbers.length > 0) amount = Math.max(...allNumbers).toFixed(2);
+            if (d.error) {
+                nSpan.innerText = 'ошибка'; dSpan.innerText = 'ошибка'; aSpan.innerText = 'ошибка';
+                mSpan.innerText = 'Ошибка'; mSpan.style.background = '#fee2e2';
+                return;
+            }
+            nSpan.innerText = d.number || '❌ не введён';
+            dSpan.innerText = d.date || '❌ не введена';
+            aSpan.innerText = d.amount ? d.amount + ' руб.' : '❌ не введена';
+            let missing = [];
+            if (!d.number) missing.push('номер');
+            if (!d.date) missing.push('дата');
+            if (!d.amount) missing.push('сумма');
+            if (missing.length) {
+                mSpan.innerText = `⚠️ нет: ${missing.join(', ')}`;
+                mSpan.style.background = '#fff3bf';
+            } else {
+                mSpan.innerText = '✓ Введено вручную';
+                mSpan.style.background = '#dcfce7';
             }
         } else {
-            // Для счёта: ищем фразы "сумма в руб. РФ:", "всего с НДС", "Итого:", "Всего к оплате"
-            let patterns = [
-                /сумма\s+в\s+руб\.?\s*рф\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /всего\s+с\s+ндс\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /Итого:\s*([\d\s]+[.,]\d{2})/i,
-                /Всего\s+к\s+оплате\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
-                /Сумма\s*:?\s*([\d\s]+[.,]\d{2})/i
-            ];
-            for (let p of patterns) {
-                let m = text.match(p);
-                if (m && m[1]) {
-                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num) && num < 1000000 && num > 100) {
-                        amount = num.toFixed(2);
-                        break;
-                    }
-                }
+            let nSpan = document.getElementById('pdf2Number');
+            let dSpan = document.getElementById('pdf2Date');
+            let aSpan = document.getElementById('pdf2Amount');
+            let mSpan = document.getElementById('pdf2Msg');
+            if (!d.loaded && !d.error) {
+                nSpan.innerText = '—'; dSpan.innerText = '—'; aSpan.innerText = '—';
+                mSpan.innerText = 'Ожидание загрузки'; mSpan.style.background = '#eef2ff';
+                return;
             }
-            if (!amount) {
-                // Ищем все числа, берём последнее, которое не слишком маленькое и не слишком большое
-                let allNumbers = [];
-                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-                let match;
-                while ((match = regex.exec(text)) !== null) {
-                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num) && num > 100 && num < 1000000) allNumbers.push(num);
-                }
-                if (allNumbers.length > 0) {
-                    amount = allNumbers[allNumbers.length - 1].toFixed(2);
-                }
+            if (d.error) {
+                nSpan.innerText = 'ошибка'; dSpan.innerText = 'ошибка'; aSpan.innerText = 'ошибка';
+                mSpan.innerText = 'Ошибка PDF'; mSpan.style.background = '#fee2e2';
+                return;
+            }
+            nSpan.innerText = d.number || '❌ не найден';
+            dSpan.innerText = d.date || '❌ не найдена';
+            aSpan.innerText = d.amount ? d.amount + ' руб.' : '❌ не найдена';
+            let missing = [];
+            if (!d.number) missing.push('номер');
+            if (!d.date) missing.push('дата');
+            if (!d.amount) missing.push('сумма');
+            if (missing.length) {
+                mSpan.innerText = `⚠️ нет: ${missing.join(', ')}`;
+                mSpan.style.background = '#fff3bf';
+            } else {
+                mSpan.innerText = '✓ Распознано';
+                mSpan.style.background = '#dcfce7';
             }
         }
-        return amount;
     }
 
     function normalizeString(s) { return s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : ''; }
     function compareFields(v1, v2) { 
         if (v1 === null || v2 === null) return 'error';
         return normalizeString(v1) === normalizeString(v2) ? 'ok' : 'fail';
-    }
-
-    function updateUI(idx) {
-        let d = pdfData[idx];
-        let nSpan = idx === 0 ? document.getElementById('pdf1Number') : document.getElementById('pdf2Number');
-        let dSpan = idx === 0 ? document.getElementById('pdf1Date') : document.getElementById('pdf2Date');
-        let aSpan = idx === 0 ? document.getElementById('pdf1Amount') : document.getElementById('pdf2Amount');
-        let mSpan = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
-        if (!d.loaded && !d.error) {
-            nSpan.innerText = '—'; dSpan.innerText = '—'; aSpan.innerText = '—';
-            mSpan.innerText = 'Ожидание загрузки'; mSpan.style.background = '#eef2ff';
-            return;
-        }
-        if (d.error) {
-            nSpan.innerText = 'ошибка'; dSpan.innerText = 'ошибка'; aSpan.innerText = 'ошибка';
-            mSpan.innerText = 'Ошибка PDF'; mSpan.style.background = '#fee2e2';
-            return;
-        }
-        nSpan.innerText = d.number || '❌ не найден';
-        dSpan.innerText = d.date || '❌ не найдена';
-        aSpan.innerText = d.amount ? d.amount + ' руб.' : '❌ не найдена';
-        let missing = [];
-        if (!d.number) missing.push('номер');
-        if (!d.date) missing.push('дата');
-        if (!d.amount) missing.push('сумма');
-        if (missing.length) {
-            mSpan.innerText = `⚠️ нет: ${missing.join(', ')}`;
-            mSpan.style.background = '#fff3bf';
-        } else {
-            mSpan.innerText = '✓ Распознано';
-            mSpan.style.background = '#dcfce7';
-        }
     }
 
     function updateComparison() {
@@ -384,19 +353,13 @@
             el.innerText = text;
             el.className = `result-status status-${status === 'ok' ? 'ok' : (status === 'fail' ? 'fail' : 'error')}`;
         }
-        if (!d1.file || !d2.file) {
+        if (!d1.file && !d1.number && !d1.date && !d1.amount) {
             setRes(resultNumberSpan, 'error');
             setRes(resultDateSpan, 'error');
             setRes(resultAmountSpan, 'error');
             return;
         }
-        if (d1.error || d2.error) {
-            setRes(resultNumberSpan, 'error');
-            setRes(resultDateSpan, 'error');
-            setRes(resultAmountSpan, 'error');
-            return;
-        }
-        if (!d1.loaded || !d2.loaded) {
+        if (!d2.file || d2.error || !d2.loaded) {
             setRes(resultNumberSpan, 'error');
             setRes(resultDateSpan, 'error');
             setRes(resultAmountSpan, 'error');
@@ -411,17 +374,20 @@
         let output = '';
         for (let i = 0; i < 2; i++) {
             let d = pdfData[i];
-            output += `=== ${i === 0 ? 'СЧЁТ' : 'АКЦЕПТ'} ===\n`;
+            output += `=== ${i === 0 ? 'СЧЁТ (ручной ввод)' : 'АКЦЕПТ'} ===\n`;
             output += `Загружен: ${d.file ? d.file.name : 'нет'}\n`;
             output += `Ошибка: ${d.error ? 'да' : 'нет'}\n`;
-            output += `Распознано: номер=${d.number}, дата=${d.date}, сумма=${d.amount}\n`;
-            output += `Текст (первые 1000 символов):\n${(d.rawText || '').substring(0, 1000)}\n\n`;
+            output += `Распознано/введено: номер=${d.number}, дата=${d.date}, сумма=${d.amount}\n`;
+            if (i === 1 && d.rawText && d.rawText.length > 0) {
+                output += `Текст из акцепта (первые 500 символов):\n${d.rawText.substring(0, 500)}\n\n`;
+            }
         }
         const debugDiv = document.getElementById('debugOutput');
         debugDiv.innerText = output;
         debugDiv.style.display = 'block';
     }
 
+    // Справочник
     function buildReference() {
         const refDiv = document.getElementById('refOutput');
         const objectsData = [
@@ -483,6 +449,21 @@
         refDiv.innerHTML = fullHtml;
     }
 
+    // Обработчики
+    document.getElementById('applyManualBtn').addEventListener('click', applyManual);
+    document.getElementById('pdf1Input').addEventListener('change', e => {
+        pdfData[0].file = e.target.files[0];
+        document.getElementById('pdf1Msg').innerText = 'Файл выбран, введите данные вручную';
+        document.getElementById('pdf1Msg').style.background = '#eef2ff';
+    });
+    document.getElementById('pdf2Input').addEventListener('change', async e => {
+        await loadAcceptPDF(e.target.files[0], 1);
+        updateComparison();
+    });
+    document.getElementById('compareBtn').addEventListener('click', updateComparison);
+    document.getElementById('debugBtn').addEventListener('click', showDebug);
+
+    // Переключение вкладок
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
@@ -496,17 +477,6 @@
     document.getElementById('closeRefBtn')?.addEventListener('click', () => {
         document.querySelector('.tab-btn[data-tab="main"]').click();
     });
-
-    document.getElementById('pdf1Input').addEventListener('change', async e => {
-        await loadPDF(e.target.files[0], 0, 'invoice');
-        updateComparison();
-    });
-    document.getElementById('pdf2Input').addEventListener('change', async e => {
-        await loadPDF(e.target.files[0], 1, 'accept');
-        updateComparison();
-    });
-    document.getElementById('compareBtn').addEventListener('click', updateComparison);
-    document.getElementById('debugBtn').addEventListener('click', showDebug);
 
     const resultNumberSpan = document.getElementById('resultNumber');
     const resultDateSpan = document.getElementById('resultDate');
