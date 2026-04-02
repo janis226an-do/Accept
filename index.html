@@ -2,104 +2,220 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сверка счетов: номер, дата, сумма</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Сверка счетов: Номер, Дата, Сумма (с OCR для сканов)</title>
+    <!-- PDF.js for rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
-        body { background: #eef2f6; margin: 0; padding: 1.5rem; display: flex; justify-content: center; }
-        .card { max-width: 1300px; width: 100%; background: white; border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
+        body { background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%); margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 1.5rem; }
+        .card { max-width: 1300px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
         .header { background: #1e2f4e; padding: 1.5rem 2rem; color: white; }
+        .header h1 { margin: 0; font-weight: 600; font-size: 1.8rem; }
+        .header p { margin: 0.5rem 0 0; opacity: 0.85; font-size: 0.95rem; }
         .content { padding: 2rem; }
         .upload-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 2rem; }
-        .upload-box { flex: 1; background: #f9fafc; border-radius: 1.25rem; border: 1px solid #e2e8f0; padding: 1.25rem; }
-        .upload-box h3 { margin: 0 0 1rem 0; color: #0f2b3d; }
-        input[type="file"] { width: 100%; padding: 0.5rem; border-radius: 2rem; border: 1px solid #cbd5e1; background: white; }
-        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem; margin-top: 1rem; border-left: 4px solid #3b82f6; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; }
-        .info-label { font-weight: 600; }
-        .info-value { font-family: monospace; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; }
-        .badge { font-size: 0.75rem; background: #eef2ff; border-radius: 1rem; padding: 0.2rem 0.7rem; }
-        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem; border: 1px solid #eef2ff; }
-        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; }
-        .result-status { font-weight: 700; padding: 0.2rem 1rem; border-radius: 2rem; }
+        .upload-box { flex: 1; min-width: 280px; background: #f9fafc; border-radius: 1.25rem; border: 1px solid #e2e8f0; padding: 1.25rem; }
+        .upload-box h3 { margin-top: 0; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600; color: #0f2b3d; display: flex; align-items: center; gap: 0.5rem; }
+        .file-label { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        input[type="file"] { border: 1px solid #cbd5e1; border-radius: 2rem; padding: 0.6rem 1rem; background: white; font-size: 0.85rem; cursor: pointer; }
+        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem 1rem; margin-top: 1rem; border-left: 4px solid #3b82f6; font-size: 0.9rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+        .info-label { font-weight: 600; color: #1e293b; }
+        .info-value { font-family: 'SF Mono', monospace; color: #0f3b2c; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; word-break: break-all; }
+        .badge { font-size: 0.75rem; background: #eef2ff; border-radius: 1rem; padding: 0.2rem 0.7rem; color: #1e40af; }
+        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; box-shadow: 0 8px 20px rgba(0,0,0,0.05); border: 1px solid #eef2ff; }
+        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem 1.25rem; margin-bottom: 0.75rem; display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
+        .result-label { font-weight: 700; font-size: 1rem; color: #0f172a; }
+        .result-status { font-weight: 700; font-size: 1.2rem; padding: 0.2rem 1rem; border-radius: 2rem; }
         .status-ok { background: #dcfce7; color: #15803d; }
         .status-fail { background: #fee2e2; color: #b91c1c; }
         .status-error { background: #fff3bf; color: #b45309; }
-        .compare-btn, .debug-btn { background: #1e2f4e; border: none; padding: 0.8rem; font-weight: 600; color: white; border-radius: 3rem; cursor: pointer; width: 100%; margin-top: 1rem; }
-        .debug-btn { background: #4b5563; margin-top: 0.5rem; }
-        .footnote { font-size: 0.75rem; text-align: center; margin-top: 1.5rem; color: #5b6e8c; }
+        .compare-btn { background: #1e2f4e; border: none; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; color: white; border-radius: 3rem; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 1rem; }
+        .compare-btn:hover { background: #0f2b3d; transform: translateY(-1px); }
         .loading { display: inline-block; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 50%; border-top-color: #1e2f4e; animation: spin 0.6s linear infinite; margin-left: 8px; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        #debugOutput { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 1rem; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin-top: 1rem; max-height: 300px; overflow: auto; display: none; }
+        .footnote { font-size: 0.75rem; text-align: center; margin-top: 1.5rem; color: #5b6e8c; border-top: 1px solid #e2edf2; padding-top: 1rem; }
+        progress { width: 100%; height: 10px; border-radius: 5px; margin: 5px 0; }
+        .ocr-progress { font-size: 0.7rem; color: #4b5563; text-align: center; }
     </style>
 </head>
 <body>
 <div class="card">
     <div class="header">
-        <h1>📄 Сверка счетов на оплату</h1>
-        <p>Загрузите счёт на оплату и акцепт. Распознаём номер, дату и сумму.</p>
+        <h1>📄 Сверка счетов на оплату (с поддержкой сканов)</h1>
+        <p>Загрузите счёт на оплату и акцепт. Система распознает текст даже со сканированных изображений с помощью OCR.</p>
     </div>
     <div class="content">
         <div class="upload-grid">
             <div class="upload-box">
                 <h3>📎 Документ: счёт на оплату</h3>
-                <input type="file" id="pdf1Input" accept="application/pdf">
+                <div class="file-label">
+                    <input type="file" id="pdf1Input" accept="application/pdf">
+                </div>
                 <div id="pdf1Status" class="extracted-info">
-                    <div class="info-row"><span class="info-label">Номер:</span><span class="info-value" id="pdf1Number">—</span></div>
-                    <div class="info-row"><span class="info-label">Дата:</span><span class="info-value" id="pdf1Date">—</span></div>
-                    <div class="info-row"><span class="info-label">Сумма:</span><span class="info-value" id="pdf1Amount">—</span></div>
-                    <div class="info-row"><span class="info-label">Статус:</span><span id="pdf1Msg" class="badge">Ожидание</span></div>
+                    <div class="info-row"><span class="info-label">📌 Номер счета:</span><span class="info-value" id="pdf1Number">—</span></div>
+                    <div class="info-row"><span class="info-label">📅 Дата счета:</span><span class="info-value" id="pdf1Date">—</span></div>
+                    <div class="info-row"><span class="info-label">💰 Сумма:</span><span class="info-value" id="pdf1Amount">—</span></div>
+                    <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf1Msg" class="badge">Ожидание загрузки</span></div>
+                    <div id="pdf1Progress" class="ocr-progress" style="display:none;"></div>
                 </div>
             </div>
             <div class="upload-box">
                 <h3>📎 Документ: акцепт</h3>
-                <input type="file" id="pdf2Input" accept="application/pdf">
+                <div class="file-label">
+                    <input type="file" id="pdf2Input" accept="application/pdf">
+                </div>
                 <div id="pdf2Status" class="extracted-info">
-                    <div class="info-row"><span class="info-label">Номер:</span><span class="info-value" id="pdf2Number">—</span></div>
-                    <div class="info-row"><span class="info-label">Дата:</span><span class="info-value" id="pdf2Date">—</span></div>
-                    <div class="info-row"><span class="info-label">Сумма:</span><span class="info-value" id="pdf2Amount">—</span></div>
-                    <div class="info-row"><span class="info-label">Статус:</span><span id="pdf2Msg" class="badge">Ожидание</span></div>
+                    <div class="info-row"><span class="info-label">📌 Номер счета:</span><span class="info-value" id="pdf2Number">—</span></div>
+                    <div class="info-row"><span class="info-label">📅 Дата счета:</span><span class="info-value" id="pdf2Date">—</span></div>
+                    <div class="info-row"><span class="info-label">💰 Сумма:</span><span class="info-value" id="pdf2Amount">—</span></div>
+                    <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf2Msg" class="badge">Ожидание загрузки</span></div>
+                    <div id="pdf2Progress" class="ocr-progress" style="display:none;"></div>
                 </div>
             </div>
         </div>
         <div class="result-area">
-            <div class="result-item"><span>🧾 Номер счёта на оплату:</span><span id="resultNumber" class="result-status">—</span></div>
-            <div class="result-item"><span>📅 Дата счёта на оплату:</span><span id="resultDate" class="result-status">—</span></div>
-            <div class="result-item"><span>💰 Сумма:</span><span id="resultAmount" class="result-status">—</span></div>
-            <button id="compareBtn" class="compare-btn">🔄 Сравнить</button>
-            <button id="debugBtn" class="debug-btn">🐞 Показать отладку (текст из PDF)</button>
-            <div id="debugOutput"></div>
+            <div class="result-item"><span class="result-label">🧾 Номер счёта на оплату:</span><span id="resultNumber" class="result-status">—</span></div>
+            <div class="result-item"><span class="result-label">📅 Дата счёта на оплату:</span><span id="resultDate" class="result-status">—</span></div>
+            <div class="result-item"><span class="result-label">💰 Сумма:</span><span id="resultAmount" class="result-status">—</span></div>
+            <button id="compareBtn" class="compare-btn">🔄 Сравнить документы</button>
         </div>
-        <div class="footnote">Если данные не распознаются, нажмите «Показать отладку» и скопируйте текст в консоль.</div>
+        <div class="footnote">
+            🔍 Если документ сканированный, автоматически запускается OCR (Tesseract.js). Распознавание может занять до 30 секунд на страницу.
+        </div>
     </div>
 </div>
 <script>
+    // Configure PDF.js worker
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     
+    // Data storage
     const pdfData = [
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' },
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' }
     ];
 
-    // Надёжное извлечение текста со всех страниц (с нормализацией)
-    async function extractTextFromPDF(file) {
-        if (!file) return null;
+    // --- Text Extraction Logic with OCR Fallback ---
+    async function extractTextFromPDF(file, pageNum, progressElementId) {
         const arrayBuffer = await file.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, useSystemFonts: true, verbosity: 0 });
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
-        let fullText = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const content = await page.getTextContent({ normalizeWhitespace: true });
-            let pageText = content.items.map(item => item.str).join(' ');
-            fullText += pageText + '\n';
+        
+        // Get the specified page
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 }); // Slightly higher scale for better OCR
+        
+        // Prepare canvas
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        
+        // Render PDF page to canvas
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+        
+        // Show progress indicator
+        const progressDiv = document.getElementById(progressElementId);
+        if (progressDiv) {
+            progressDiv.style.display = 'block';
+            progressDiv.innerHTML = '⏳ Распознавание текста через OCR... <progress value="0" max="100"></progress>';
         }
-        // Жёсткая нормализация: удаляем лишние пробелы, разрывы строк
+        
+        // Perform OCR
+        let fullText = '';
+        try {
+            const { data: { text } } = await Tesseract.recognize(
+                canvas,
+                'rus+eng',
+                {
+                    logger: m => {
+                        if (m.status === 'recognizing text' && progressDiv) {
+                            let progressBar = progressDiv.querySelector('progress');
+                            if (progressBar) progressBar.value = m.progress * 100;
+                            progressDiv.innerHTML = `⏳ Распознавание текста через OCR... <progress value="${m.progress * 100}" max="100"></progress>`;
+                        }
+                    }
+                }
+            );
+            fullText = text;
+        } catch (ocrError) {
+            console.error("OCR Error:", ocrError);
+            throw new Error("Не удалось распознать текст на изображении. Возможно, изображение слишком низкого качества.");
+        } finally {
+            if (progressDiv) progressDiv.style.display = 'none';
+        }
+        
+        // Clean up text
         fullText = fullText.replace(/\s+/g, ' ').trim();
         return fullText;
     }
 
+    // --- Main processing function that decides between text extraction and OCR ---
+    async function loadPDF(file, idx, docType) {
+        if (!file) {
+            pdfData[idx] = { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' };
+            updateUI(idx);
+            return;
+        }
+        
+        let msgSpan = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
+        let progressId = idx === 0 ? 'pdf1Progress' : 'pdf2Progress';
+        msgSpan.innerHTML = '⏳ Анализ документа... <span class="loading"></span>';
+        
+        try {
+            // Step 1: Try to get text directly using PDF.js (for digital PDFs)
+            const arrayBuffer = await file.arrayBuffer();
+            const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdf = await loadingTask.promise;
+            let extractedText = '';
+            
+            // Try to extract text from the first page using PDF.js text layer
+            const firstPage = await pdf.getPage(1);
+            const textContent = await firstPage.getTextContent();
+            let directText = textContent.items.map(item => item.str).join(' ').trim();
+            
+            if (directText && directText.length > 50) {
+                // If we got substantial text, use it directly
+                extractedText = directText.replace(/\s+/g, ' ');
+                console.log(`PDF.js text extraction successful (${extractedText.length} chars)`);
+            } else {
+                // Otherwise, fallback to OCR
+                console.log("Direct text extraction failed or insufficient, falling back to OCR.");
+                extractedText = await extractTextFromPDF(file, 1, progressId);
+            }
+            
+            if (!extractedText || extractedText.length < 10) throw new Error('Не удалось извлечь текст даже через OCR.');
+            
+            console.log(`=== Extracted Text (${idx === 0 ? 'Invoice' : 'Accept'}) ===`);
+            console.log(extractedText.substring(0, 500));
+            
+            // Extract fields
+            let number = extractNumber(extractedText, docType);
+            let date = extractDate(extractedText);
+            let amount = extractAmount(extractedText, docType);
+            
+            console.log(`Recognized: number=${number}, date=${date}, amount=${amount}`);
+            
+            pdfData[idx] = { 
+                file, number, date, amount, 
+                loaded: true, error: false, 
+                rawText: extractedText 
+            };
+            updateUI(idx);
+        } catch (err) {
+            console.error(err);
+            pdfData[idx] = { file, number: null, date: null, amount: null, loaded: false, error: true, rawText: `Error: ${err.message}` };
+            updateUI(idx);
+            let msgSpanErr = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
+            msgSpanErr.innerText = '❌ Ошибка: ' + err.message;
+            msgSpanErr.style.background = '#fee2e2';
+        }
+    }
+
+    // --- Extraction Helpers (unchanged, robust) ---
     function extractNumber(text, docType) {
         if (!text) return null;
         let patterns = [];
@@ -193,35 +309,6 @@
         return normalizeString(v1) === normalizeString(v2) ? 'ok' : 'fail';
     }
 
-    async function loadPDF(file, idx, docType) {
-        if (!file) {
-            pdfData[idx] = { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' };
-            updateUI(idx);
-            return;
-        }
-        let msgSpan = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
-        msgSpan.innerHTML = '⏳ Разбор PDF... <span class="loading"></span>';
-        try {
-            let text = await extractTextFromPDF(file);
-            if (!text || text.length < 10) throw new Error('Не удалось извлечь текст (PDF может быть сканированным)');
-            pdfData[idx].rawText = text;
-            console.log(`=== Текст ${idx === 0 ? 'счёта' : 'акцепта'} (первые 500 символов) ===`);
-            console.log(text.substring(0, 500));
-            let number = extractNumber(text, docType);
-            let date = extractDate(text);
-            let amount = extractAmount(text, docType);
-            console.log(`Распознано: номер=${number}, дата=${date}, сумма=${amount}`);
-            pdfData[idx] = { ...pdfData[idx], file, number, date, amount, loaded: true, error: false, rawText: text };
-            updateUI(idx);
-        } catch (err) {
-            console.error(err);
-            pdfData[idx] = { file, number: null, date: null, amount: null, loaded: false, error: true, rawText: `Ошибка: ${err.message}` };
-            updateUI(idx);
-            let msgSpanErr = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
-            msgSpanErr.innerText = '❌ Ошибка: ' + err.message;
-        }
-    }
-
     function updateUI(idx) {
         let d = pdfData[idx];
         let nSpan = idx === 0 ? document.getElementById('pdf1Number') : document.getElementById('pdf2Number');
@@ -284,20 +371,7 @@
         setRes(resultAmountSpan, compareFields(d1.amount, d2.amount));
     }
 
-    function showDebug() {
-        let output = '';
-        for (let i = 0; i < 2; i++) {
-            let d = pdfData[i];
-            output += `=== ${i === 0 ? 'СЧЁТ' : 'АКЦЕПТ'} ===\n`;
-            output += `Загружен: ${d.file ? d.file.name : 'нет'}\n`;
-            output += `Ошибка: ${d.error ? 'да' : 'нет'}\n`;
-            output += `Текст (первые 1000 символов):\n${(d.rawText || '').substring(0, 1000)}\n\n`;
-        }
-        const debugDiv = document.getElementById('debugOutput');
-        debugDiv.innerText = output;
-        debugDiv.style.display = 'block';
-    }
-
+    // Event listeners
     document.getElementById('pdf1Input').addEventListener('change', async e => {
         await loadPDF(e.target.files[0], 0, 'invoice');
         updateComparison();
@@ -306,8 +380,7 @@
         await loadPDF(e.target.files[0], 1, 'accept');
         updateComparison();
     });
-    document.getElementById('compareBtn').addEventListener('click', updateComparison);
-    document.getElementById('debugBtn').addEventListener('click', showDebug);
+    document.getElementById('compareBtn').addEventListener('click', () => updateComparison());
 
     const resultNumberSpan = document.getElementById('resultNumber');
     const resultDateSpan = document.getElementById('resultDate');
