@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Сверка счетов: Номер, Дата, Сумма (с OCR для сканов)</title>
-    <!-- PDF.js for rendering -->
+    <title>Сверка счетов: номер, дата, сумма (с поддержкой сканов)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <!-- Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
@@ -89,42 +87,30 @@
     </div>
 </div>
 <script>
-    // Configure PDF.js worker
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     
-    // Data storage
     const pdfData = [
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' },
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' }
     ];
 
-    // --- Text Extraction Logic with OCR Fallback ---
     async function extractTextFromPDF(file, pageNum, progressElementId) {
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
-        
-        // Get the specified page
         const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 }); // Slightly higher scale for better OCR
-        
-        // Prepare canvas
+        const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
-        
-        // Render PDF page to canvas
         await page.render({ canvasContext: context, viewport: viewport }).promise;
         
-        // Show progress indicator
         const progressDiv = document.getElementById(progressElementId);
         if (progressDiv) {
             progressDiv.style.display = 'block';
             progressDiv.innerHTML = '⏳ Распознавание текста через OCR... <progress value="0" max="100"></progress>';
         }
-        
-        // Perform OCR
         let fullText = '';
         try {
             const { data: { text } } = await Tesseract.recognize(
@@ -143,67 +129,49 @@
             fullText = text;
         } catch (ocrError) {
             console.error("OCR Error:", ocrError);
-            throw new Error("Не удалось распознать текст на изображении. Возможно, изображение слишком низкого качества.");
+            throw new Error("Не удалось распознать текст на изображении.");
         } finally {
             if (progressDiv) progressDiv.style.display = 'none';
         }
-        
-        // Clean up text
         fullText = fullText.replace(/\s+/g, ' ').trim();
         return fullText;
     }
 
-    // --- Main processing function that decides between text extraction and OCR ---
     async function loadPDF(file, idx, docType) {
         if (!file) {
             pdfData[idx] = { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' };
             updateUI(idx);
             return;
         }
-        
         let msgSpan = idx === 0 ? document.getElementById('pdf1Msg') : document.getElementById('pdf2Msg');
         let progressId = idx === 0 ? 'pdf1Progress' : 'pdf2Progress';
         msgSpan.innerHTML = '⏳ Анализ документа... <span class="loading"></span>';
         
         try {
-            // Step 1: Try to get text directly using PDF.js (for digital PDFs)
             const arrayBuffer = await file.arrayBuffer();
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdf = await loadingTask.promise;
             let extractedText = '';
-            
-            // Try to extract text from the first page using PDF.js text layer
             const firstPage = await pdf.getPage(1);
             const textContent = await firstPage.getTextContent();
             let directText = textContent.items.map(item => item.str).join(' ').trim();
-            
             if (directText && directText.length > 50) {
-                // If we got substantial text, use it directly
                 extractedText = directText.replace(/\s+/g, ' ');
                 console.log(`PDF.js text extraction successful (${extractedText.length} chars)`);
             } else {
-                // Otherwise, fallback to OCR
-                console.log("Direct text extraction failed or insufficient, falling back to OCR.");
+                console.log("Direct text extraction failed, falling back to OCR.");
                 extractedText = await extractTextFromPDF(file, 1, progressId);
             }
-            
             if (!extractedText || extractedText.length < 10) throw new Error('Не удалось извлечь текст даже через OCR.');
-            
             console.log(`=== Extracted Text (${idx === 0 ? 'Invoice' : 'Accept'}) ===`);
             console.log(extractedText.substring(0, 500));
             
-            // Extract fields
             let number = extractNumber(extractedText, docType);
-            let date = extractDate(extractedText);
+            let date = extractDate(extractedText, docType);
             let amount = extractAmount(extractedText, docType);
             
             console.log(`Recognized: number=${number}, date=${date}, amount=${amount}`);
-            
-            pdfData[idx] = { 
-                file, number, date, amount, 
-                loaded: true, error: false, 
-                rawText: extractedText 
-            };
+            pdfData[idx] = { file, number, date, amount, loaded: true, error: false, rawText: extractedText };
             updateUI(idx);
         } catch (err) {
             console.error(err);
@@ -215,7 +183,7 @@
         }
     }
 
-    // --- Extraction Helpers (unchanged, robust) ---
+    // --- Улучшенное извлечение номера счёта (гибкое) ---
     function extractNumber(text, docType) {
         if (!text) return null;
         let patterns = [];
@@ -246,8 +214,35 @@
         return null;
     }
 
-    function extractDate(text) {
+    // --- Улучшенное извлечение даты: ищем сразу после номера счёта ---
+    function extractDate(text, docType) {
         if (!text) return null;
+        // Сначала пытаемся найти дату в той же строке/блоке, где есть номер счёта
+        let invoiceBlock = null;
+        if (docType !== 'accept') {
+            // Ищем фразу "Счет на оплату № X от ..."
+            let matchBlock = text.match(/Счет\s*на\s*оплату\s*(?:№|No|N)\s*\d+\s*от\s*([^\.]{5,50})/i);
+            if (matchBlock) {
+                invoiceBlock = matchBlock[1];
+            } else {
+                // Если нет, ищем просто "Счет № X от ..."
+                matchBlock = text.match(/Счет\s*(?:№|No|N)\s*\d+\s*от\s*([^\.]{5,50})/i);
+                if (matchBlock) invoiceBlock = matchBlock[1];
+            }
+            if (invoiceBlock) {
+                let dateMatch = invoiceBlock.match(/(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
+                if (dateMatch) {
+                    let day = dateMatch[1].padStart(2, '0');
+                    const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
+                    let month = monthMap[dateMatch[2].toLowerCase()];
+                    if (month) return `${day}.${month}.${dateMatch[3]}`;
+                }
+                let dateMatchDot = invoiceBlock.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                if (dateMatchDot) return `${dateMatchDot[1]}.${dateMatchDot[2]}.${dateMatchDot[3]}`;
+            }
+        }
+        
+        // Если не нашли в блоке счёта, пробуем обычные паттерны (для акцепта и как fallback)
         let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
         if (match) {
             let day = match[1].padStart(2, '0');
@@ -262,6 +257,7 @@
         return null;
     }
 
+    // --- Извлечение суммы (оставляем прежним, он работает) ---
     function extractAmount(text, docType) {
         if (!text) return null;
         let amount = null;
@@ -371,7 +367,6 @@
         setRes(resultAmountSpan, compareFields(d1.amount, d2.amount));
     }
 
-    // Event listeners
     document.getElementById('pdf1Input').addEventListener('change', async e => {
         await loadPDF(e.target.files[0], 0, 'invoice');
         updateComparison();
