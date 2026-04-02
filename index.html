@@ -3,38 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Сверка счетов: номер, дата, сумма (улучшенное OCR)</title>
+    <title>Сверка счетов: номер, дата, сумма (с поддержкой сканов + справочник)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
-        body { background: #eef2f6; margin: 0; padding: 1.5rem; display: flex; justify-content: center; }
-        .card { max-width: 1400px; width: 100%; background: white; border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
+        body { background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%); margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 1.5rem; }
+        .card { max-width: 1400px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
         .header { background: #1e2f4e; padding: 1rem 2rem; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .header h1 { margin: 0; font-size: 1.6rem; }
         .tab-buttons { display: flex; gap: 0.5rem; }
-        .tab-btn { background: #2d4a6e; border: none; color: white; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+        .tab-btn { background: #2d4a6e; border: none; color: white; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; transition: 0.2s; }
         .tab-btn.active { background: #f59e0b; color: #1e2f4e; }
+        .tab-btn:hover { background: #3b5f8a; }
         .content { padding: 2rem; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .upload-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 2rem; }
         .upload-box { flex: 1; min-width: 280px; background: #f9fafc; border-radius: 1.25rem; border: 1px solid #e2e8f0; padding: 1.25rem; }
-        .upload-box h3 { margin: 0 0 1rem 0; color: #0f2b3d; }
-        .file-label { margin-bottom: 1rem; }
-        input[type="file"] { width: 100%; padding: 0.5rem; border-radius: 2rem; border: 1px solid #cbd5e1; background: white; }
-        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem; margin-top: 1rem; border-left: 4px solid #3b82f6; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; }
-        .info-label { font-weight: 600; }
+        .upload-box h3 { margin-top: 0; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600; color: #0f2b3d; display: flex; align-items: center; gap: 0.5rem; }
+        .file-label { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+        input[type="file"] { border: 1px solid #cbd5e1; border-radius: 2rem; padding: 0.6rem 1rem; background: white; font-size: 0.85rem; cursor: pointer; }
+        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem 1rem; margin-top: 1rem; border-left: 4px solid #3b82f6; font-size: 0.9rem; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
+        .info-label { font-weight: 600; color: #1e293b; }
         .info-value { font-family: monospace; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; }
         .badge { font-size: 0.75rem; background: #eef2ff; border-radius: 1rem; padding: 0.2rem 0.7rem; }
-        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem; border: 1px solid #eef2ff; }
-        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; }
-        .result-status { font-weight: 700; padding: 0.2rem 1rem; border-radius: 2rem; }
+        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; border: 1px solid #eef2ff; }
+        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem 1.25rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; }
+        .result-label { font-weight: 700; font-size: 1rem; }
+        .result-status { font-weight: 700; font-size: 1.2rem; padding: 0.2rem 1rem; border-radius: 2rem; }
         .status-ok { background: #dcfce7; color: #15803d; }
         .status-fail { background: #fee2e2; color: #b91c1c; }
         .status-error { background: #fff3bf; color: #b45309; }
-        .compare-btn, .debug-btn, .ref-btn { background: #1e2f4e; border: none; padding: 0.6rem 1rem; font-weight: 600; color: white; border-radius: 2rem; cursor: pointer; margin-top: 1rem; margin-right: 0.5rem; }
+        .compare-btn, .debug-btn, .ref-btn { background: #1e2f4e; border: none; padding: 0.6rem 1rem; font-weight: 600; color: white; border-radius: 2rem; cursor: pointer; margin-top: 1rem; width: auto; display: inline-block; margin-right: 0.5rem; }
         .debug-btn { background: #4b5563; }
         .ref-btn { background: #f59e0b; color: #1e2f4e; }
         .footnote { font-size: 0.75rem; text-align: center; margin-top: 1.5rem; color: #5b6e8c; }
@@ -44,7 +46,7 @@
         .ocr-progress { font-size: 0.7rem; color: #4b5563; text-align: center; }
         #debugOutput, #refOutput { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 1rem; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin-top: 1rem; max-height: 400px; overflow: auto; display: none; }
         .ref-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .ref-table th, .ref-table td { border: 1px solid #cbd5e1; padding: 0.4rem; text-align: left; }
+        .ref-table th, .ref-table td { border: 1px solid #cbd5e1; padding: 0.4rem; text-align: left; vertical-align: top; }
         .ref-table th { background: #e2e8f0; }
         .scrollable { overflow-x: auto; }
     </style>
@@ -52,13 +54,14 @@
 <body>
 <div class="card">
     <div class="header">
-        <h1>📄 Сверка счетов на оплату (улучшенное OCR)</h1>
+        <h1>📄 Сверка счетов на оплату</h1>
         <div class="tab-buttons">
             <button class="tab-btn active" data-tab="main">Главная</button>
             <button class="tab-btn" data-tab="ref">Справочник</button>
         </div>
     </div>
     <div class="content">
+        <!-- Главная вкладка -->
         <div id="mainTab" class="tab-content active">
             <div class="upload-grid">
                 <div class="upload-box">
@@ -99,15 +102,19 @@
                 <div id="debugOutput"></div>
             </div>
             <div class="footnote">
-                🔍 Улучшенное OCR: дата ищется после номера счёта, сумма по фразе "сумма в руб. РФ" или "всего с НДС".
+                🔍 Для сканов автоматически запускается OCR. Если данные не распознаются, нажмите «Показать отладку».
             </div>
         </div>
+
+        <!-- Справочник -->
         <div id="refTab" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
                 <h3>📚 Справочная информация (объекты, участки, ГК/ИГК)</h3>
                 <button id="closeRefBtn" class="ref-btn" style="background: #6c757d;">✖ Скрыть</button>
             </div>
-            <div id="refOutput" style="display: block; max-height: 600px; overflow-y: auto;"></div>
+            <div id="refOutput" style="display: block; max-height: 600px; overflow-y: auto;">
+                <!-- Данные будут загружены из JavaScript -->
+            </div>
         </div>
     </div>
 </div>
@@ -119,37 +126,17 @@
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' }
     ];
 
-    async function preprocessImage(canvas) {
-        const ctx = canvas.getContext('2d');
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            let r = data[i];
-            let g = data[i+1];
-            let b = data[i+2];
-            let brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-            let value = brightness > 150 ? 255 : 0;
-            data[i] = value;
-            data[i+1] = value;
-            data[i+2] = value;
-        }
-        ctx.putImageData(imageData, 0, 0);
-        return canvas;
-    }
-
-    async function extractTextWithOCR(file, pageNum, progressElementId) {
+    async function extractTextFromPDF(file, pageNum, progressElementId) {
         const arrayBuffer = await file.arrayBuffer();
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNum);
-        const scale = 2.5;
-        const viewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         await page.render({ canvasContext: context, viewport: viewport }).promise;
-        await preprocessImage(canvas);
         
         const progressDiv = document.getElementById(progressElementId);
         if (progressDiv) {
@@ -173,6 +160,7 @@
             );
             fullText = text;
         } catch (ocrError) {
+            console.error("OCR Error:", ocrError);
             throw new Error("Не удалось распознать текст на изображении.");
         } finally {
             if (progressDiv) progressDiv.style.display = 'none';
@@ -199,14 +187,14 @@
             const firstPage = await pdf.getPage(1);
             const textContent = await firstPage.getTextContent();
             let directText = textContent.items.map(item => item.str).join(' ').trim();
-            if (directText && directText.length > 100) {
+            if (directText && directText.length > 50) {
                 extractedText = directText.replace(/\s+/g, ' ');
                 console.log(`PDF.js text extraction successful (${extractedText.length} chars)`);
             } else {
-                console.log("Direct text extraction insufficient, using enhanced OCR.");
-                extractedText = await extractTextWithOCR(file, 1, progressId);
+                console.log("Direct text extraction failed, falling back to OCR.");
+                extractedText = await extractTextFromPDF(file, 1, progressId);
             }
-            if (!extractedText || extractedText.length < 20) throw new Error('Не удалось извлечь текст.');
+            if (!extractedText || extractedText.length < 10) throw new Error('Не удалось извлечь текст даже через OCR.');
             console.log(`=== Extracted Text (${idx === 0 ? 'Invoice' : 'Accept'}) ===`);
             console.log(extractedText.substring(0, 500));
             
@@ -227,128 +215,115 @@
         }
     }
 
+    // Улучшенное извлечение номера: для акцепта ищем буквенно-цифровой номер после "Акцептован: Счёт №"
     function extractNumber(text, docType) {
         if (!text) return null;
-        let patterns = [
-            /(?:СЧЕТ|СЧЁТ).*?(?:№|NO|N)?\s*([A-ZА-Я]{2,3}[-]?\d+)/i,
-            /(?:АКЦЕПТОВАН):.*?(?:СЧЁТ|СЧЕТ).*?(?:№|NO|N)?\s*([A-ZА-Я]{2,3}[-]?\d+)/i,
-            /([A-ZА-Я]{2,3}[-]?\d{4,5})/,
-            /([A-ZА-Я]{2,3}\d{4,5})/
-        ];
-        for (let p of patterns) {
-            let m = text.match(p);
-            if (m && m[1]) return m[1].trim();
+        if (docType === 'accept') {
+            // Ищем "Акцептован: Счёт № АР-6079" или "Счёт № АР-6079"
+            let match = text.match(/Акцептован:\s*Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            match = text.match(/Акцептован:\s*Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            match = text.match(/Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            match = text.match(/Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            // fallback: просто цифры
+            match = text.match(/(?:№|No|N)\s*(\d+)/i);
+            if (match) return match[1];
+            return null;
+        } else {
+            // Счёт на оплату: ищем цифры
+            let patterns = [
+                /Счет\s*на\s*оплату\s*(?:№|No|N)\s*(\d+)/i,
+                /Счёт\s*на\s*оплату\s*(?:№|No|N)\s*(\d+)/i,
+                /Счет\s*(?:№|No|N)\s*(\d+)/i,
+                /Счёт\s*(?:№|No|N)\s*(\d+)/i,
+                /Счет\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
+                /Счёт\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
+                /(?:№|No|N)\s*(\d+)\s+от/i,
+                /(?:№|No|N)\s*(\d+)/i
+            ];
+            for (let p of patterns) {
+                let m = text.match(p);
+                if (m && m[1]) return m[1].trim();
+            }
+            return null;
         }
-        let digitMatch = text.match(/(?:№|NO|N)\s*(\d+)/i);
-        return digitMatch ? digitMatch[1] : null;
     }
 
     function extractDate(text, docType) {
         if (!text) return null;
-        // Для счёта: ищем дату после номера счёта
+        // Сначала ищем дату в блоке счёта
+        let invoiceBlock = null;
         if (docType !== 'accept') {
-            // Находим номер счёта в тексте
-            let numberMatch = text.match(/(AP|АР)[-]?\d+/i);
-            if (numberMatch) {
-                let idx = text.indexOf(numberMatch[0]);
-                let context = text.substring(idx, idx + 300);
-                // Ищем дату в этом контексте
-                let dateMatch = context.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
-                if (!dateMatch) {
-                    dateMatch = context.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+            let matchBlock = text.match(/Счет\s*на\s*оплату\s*(?:№|No|N)\s*\d+\s*от\s*([^\.]{5,50})/i);
+            if (!matchBlock) matchBlock = text.match(/Счет\s*(?:№|No|N)\s*\d+\s*от\s*([^\.]{5,50})/i);
+            if (matchBlock) invoiceBlock = matchBlock[1];
+            if (invoiceBlock) {
+                let dateMatch = invoiceBlock.match(/(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
+                if (dateMatch) {
+                    let day = dateMatch[1].padStart(2, '0');
+                    const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
+                    let month = monthMap[dateMatch[2].toLowerCase()];
+                    if (month) return `${day}.${month}.${dateMatch[3]}`;
                 }
-                if (!dateMatch) {
-                    dateMatch = context.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
-                    if (dateMatch) {
-                        let day = dateMatch[1].padStart(2,'0');
-                        const monthMap = {'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12'};
-                        let month = monthMap[dateMatch[2].toLowerCase()];
-                        if (month) return `${day}.${month}.${dateMatch[3]}`;
-                    }
-                }
-                if (dateMatch) return `${dateMatch[1]}.${dateMatch[2]}.${dateMatch[3]}`;
+                let dateMatchDot = invoiceBlock.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                if (dateMatchDot) return `${dateMatchDot[1]}.${dateMatchDot[2]}.${dateMatchDot[3]}`;
             }
-            // fallback: ищем "дата" и дату
-            let dateLabelMatch = text.match(/дата\s+(\d{2})\.(\d{2})\.(\d{4})/i);
-            if (dateLabelMatch) return `${dateLabelMatch[1]}.${dateLabelMatch[2]}.${dateLabelMatch[3]}`;
         }
-        // Общий поиск
-        let match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
-        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
-        match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
-        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
-        match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
+        // Общие паттерны
+        let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
         if (match) {
-            let day = match[1].padStart(2,'0');
-            const monthMap = {'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12'};
+            let day = match[1].padStart(2, '0');
+            const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
             let month = monthMap[match[2].toLowerCase()];
             if (month) return `${day}.${month}.${match[3]}`;
         }
+        match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
+        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
+        match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+        if (match) return `${match[1]}.${match[2]}.${match[3]}`;
         return null;
     }
 
     function extractAmount(text, docType) {
         if (!text) return null;
         let amount = null;
+        let patterns = [];
         if (docType === 'accept') {
-            let patterns = [
+            patterns = [
                 /\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i,
                 /Сумма\s+([\d\s]+[.,]\d{2})/i,
                 /на\s+сумму\s+([\d\s]+[.,]\d{2})/i
             ];
-            for (let p of patterns) {
-                let m = text.match(p);
-                if (m && m[1]) {
-                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num)) { amount = num.toFixed(2); break; }
-                }
-            }
-            if (!amount) {
-                let allNumbers = [];
-                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-                let match;
-                while ((match = regex.exec(text)) !== null) {
-                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num)) allNumbers.push(num);
-                }
-                if (allNumbers.length > 0) amount = Math.max(...allNumbers).toFixed(2);
-            }
         } else {
-            // Для счёта: приоритет фразам "сумма в руб. РФ" и "всего с НДС"
-            let patterns = [
-                /сумма\s+в\s+руб\.?\s*рф\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /всего\s+с\s+ндс\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /Итого\s+с\s+НДС\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /Итого:\s*([\d\s]+[.,]\d{2})/i,
-                /Всего\s+к\s+оплате\s*:?\s*([\d\s]+[.,]\d{2})/i
+            patterns = [
+                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
+                /Всего.*?на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
+                /ИТОГО[:]?\s*([\d\s]+[.,]\d{2})/i,
+                /Всего\s+к\s+оплате\s+([\d\s]+[.,]\d{2})/i,
+                /Итого:\s*([\d\s]+[.,]\d{2})/i
             ];
-            for (let p of patterns) {
-                let m = text.match(p);
-                if (m && m[1]) {
-                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num) && num > 100 && num < 1000000) {
-                        amount = num.toFixed(2);
-                        break;
-                    }
-                }
+        }
+        for (let p of patterns) {
+            let m = text.match(p);
+            if (m && m[1]) {
+                let raw = m[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) { amount = num.toFixed(2); break; }
             }
-            if (!amount) {
-                // Берём последнее число в документе (обычно итоговая сумма)
-                let allNumbers = [];
-                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-                let match;
-                while ((match = regex.exec(text)) !== null) {
-                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                    let num = parseFloat(raw);
-                    if (!isNaN(num) && num > 100 && num < 1000000) allNumbers.push(num);
-                }
-                if (allNumbers.length > 0) {
-                    amount = allNumbers[allNumbers.length - 1].toFixed(2);
-                }
+        }
+        if (!amount) {
+            let allNumbers = [];
+            let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) allNumbers.push(num);
             }
+            if (allNumbers.length > 0) amount = Math.max(...allNumbers).toFixed(2);
         }
         return amount;
     }
@@ -436,28 +411,30 @@
         debugDiv.style.display = 'block';
     }
 
+    // === Справочник: данные из Excel (сокращённо, основные строки) ===
     function buildReference() {
         const refDiv = document.getElementById('refOutput');
+        // Данные из файла (первые листы)
         const objectsData = [
             ["№ п/п", "Источник оплат", "Код", "Участок", "Начальник участка"],
-            ["1", "Этап 3. Участок Северо-Восточной хорды...", "516_1", "участок 10", ""],
-            ["2", "ЮВХ участок №1. Этап 3...", "521", "участок 2", "Федорчук В.Л."],
-            ["3", "ЮВХ участок №1. Этап 2...", "521_2", "участок 9", ""],
-            ["4", "Строительство путепровода... Быково", "584", "участок 5", "Хаперских А.В."],
-            ["5", "Строительство мостового сооружения... Мясищева", "592", "участок 4", "Раевский Н.А."],
-            ["6", "Лыткарино. Автодорожный тоннель...", "595_1", "участок 1", "Ходюшин Н.В."],
-            ["7", "Лыткарино. Эстакада...", "595_2", "участок 8", "Ходюшин Н.В."],
-            ["8", "2 этап СБВ...", "600", "участок 6 и 7", "Шапкарин Р.О. / Салахетдинов А.И."],
-            ["9", "Участок магистрали 4ТК...", "615", "участок 2", ""],
-            ["10", "Строительство мостового сооружения... Новозаводская", "617", "участок 4", "Раевский Н.А."],
-            ["11", "Создание ВСЖМ СПб – Москва...", "627", "участок 13", ""],
-            ["12", "Основные работы. ВСЖМ...", "627_1", "участки 14,18,19", "Сидорин Ю.Е., Сагдуллаев Р.М., Афанасьев И.В."],
-            ["13", "Автодорожный путепровод... Рижское направление", "640", "участок 3", ""],
-            ["14", "Строительство транспортной развязки... Мневниковской поймы", "641", "участок 3", "Бурдонов С.А."],
-            ["15", "Строительство ИССО... Мелитопольской", "648", "участок 11", ""],
-            ["16", "Проектирование и строительство... Трофимова", "678", "участок 30", "Салахетдинов А.И."],
+            ["1", "Этап 3. Участок Северо-Восточной хорды от Северной рокады...", "516_1", "участок 10", ""],
+            ["2", "ЮВХ участок №1. Этап 3. \"Участок от 5-ой Кабельной улицы до СВХ\"", "521", "участок 2", "Федорчук В.Л."],
+            ["3", "ЮВХ участок №1. Этап 2. \"Участок от ж/д ветки Бойня-Перово до 5-ой Кабельной улицы\"", "521_2", "участок 9", ""],
+            ["4", "Строительство путепровода через железную дорогу в районе платформы Быково", "584", "участок 5", "Хаперских А.В."],
+            ["5", "Строительство мостового сооружения через р. Москва в створе улицы Мясищева", "592", "участок 4", "Раевский Н.А."],
+            ["6", "Лыткарино. Автодорожный тоннель в г.Видное. Подпорные стены...", "595_1", "участок 1", "Ходюшин Н.В."],
+            ["7", "Лыткарино. Эстакада (ИССО 3.10), путепровод (ИССО 3.11.1)...", "595_2", "участок 8", "Ходюшин Н.В."],
+            ["8", "2 этап СБВ. Этап 1.2. Участок магистрали \"Солнцево-Бутово-Варшавское шоссе\"...", "600", "участок 6 и 7", "Шапкарин Р.О. / Салахетдинов А.И."],
+            ["9", "Участок магистрали 4ТК от ш.Энтузиастов до Измайловского ш. (2ПК)", "615", "участок 2", ""],
+            ["10", "Строительство мостового сооружения через р.Москва вблизи улицы Новозаводская", "617", "участок 4", "Раевский Н.А."],
+            ["11", "Создание ВСЖМ СПб – Москва (участок Крюково – Обухово). 6 этап", "627", "участок 13", ""],
+            ["12", "Основные работы. ВСЖМ СПб – Москва (участок Крюково – Обухово). 6 этап", "627_1", "участки 14,18,19", "Сидорин Ю.Е., Сагдуллаев Р.М., Афанасьев И.В."],
+            ["13", "Автодорожный путепровод через Рижское направление МЖД", "640", "участок 3", ""],
+            ["14", "Строительство транспортной развязки и мостовых сооружений на территории Мневниковской поймы", "641", "участок 3", "Бурдонов С.А."],
+            ["15", "Строительство ИССО через ж/д пути Курского направления МЖД для соединения 2-ой Мелитопольской", "648", "участок 11", ""],
+            ["16", "Проектирование и строительство улично-дорожной сети вдоль МК МЖД от улицы Трофимова до Севастопольского проспекта", "678", "участок 30", "Салахетдинов А.И."],
             ["17", "Островная и Филевский", "692", "участок 3", "Бурдонов С.А."],
-            ["18", "Строительство Полигона №10 «Селинское»", "694_10", "участок 15", "Башкиров В.А."]
+            ["18", "Строительство Полигона №10 «Селинское» на ВСЖМ СПб-Москва, ПК5695", "694_10", "участок 15", "Башкиров В.А."]
         ];
         const participantsData = [
             ["ФИО", "Должность", "Код объекта", "Участок", "Подразделение"],
@@ -497,6 +474,7 @@
         refDiv.innerHTML = fullHtml;
     }
 
+    // Переключение вкладок
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tabId = btn.getAttribute('data-tab');
@@ -511,6 +489,7 @@
         document.querySelector('.tab-btn[data-tab="main"]').click();
     });
 
+    // Обработчики событий
     document.getElementById('pdf1Input').addEventListener('change', async e => {
         await loadPDF(e.target.files[0], 0, 'invoice');
         updateComparison();
