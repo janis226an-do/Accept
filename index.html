@@ -76,7 +76,7 @@
             <div class="result-item"><span class="result-label">💰 Сумма:</span><span id="resultAmount" class="result-status">—</span></div>
             <button id="compareBtn" class="compare-btn">🔄 Сравнить документы</button>
         </div>
-        <div class="footnote">🔍 Номер ищется по фразам «Счет на оплату», «Счёт на оплату», «Счет №», «Счёт №», а также просто «Счет»/«Счёт». Сумма — итоговая (без отсечения по порогу).</div>
+        <div class="footnote">🔍 Если данные не распознаются, откройте консоль браузера (F12) — там будет виден извлечённый текст и найденные значения.</div>
     </div>
 </div>
 <script>
@@ -96,12 +96,16 @@
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            fullText += content.items.map(item => item.str).join(' ') + '\n';
+            // Собираем строки, заменяя возможные разрывы на пробелы
+            let pageText = content.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n';
         }
+        // Нормализуем текст: заменяем множественные пробелы, табуляции, переносы на один пробел
+        fullText = fullText.replace(/\s+/g, ' ').trim();
         return fullText;
     }
 
-    // Извлечение номера счета (с поддержкой "Счет на оплату", "Счёт на оплату" и просто "Счет"/"Счёт")
+    // Универсальное извлечение номера счёта
     function extractNumber(text, docType) {
         if (!text) return null;
         let patterns = [];
@@ -110,7 +114,8 @@
                 /Акцептован:\s*Счёт\s*№\s*(\d+)/i,
                 /Акцептован:\s*Счет\s*№\s*(\d+)/i,
                 /Счёт\s*№\s*(\d+)/i,
-                /Счет\s*№\s*(\d+)/i
+                /Счет\s*№\s*(\d+)/i,
+                /№\s*(\d+)/i
             ];
         } else {
             patterns = [
@@ -120,19 +125,21 @@
                 /Счёт\s*№\s*(\d+)/i,
                 /Счет\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
                 /Счёт\s+(\d+)(?:\s+от|\s+г\.|\s*$)/i,
-                /№\s*(\d+)\s+от\s+\d{1,2}/i
+                /№\s*(\d+)\s+от/i,
+                /№\s*(\d+)/i
             ];
         }
         for (let p of patterns) {
             let m = text.match(p);
-            if (m) return m[1].trim();
+            if (m && m[1]) return m[1].trim();
         }
         return null;
     }
 
-    // Извлечение даты
+    // Извлечение даты (гибкое)
     function extractDate(text) {
         if (!text) return null;
+        // Сначала ищем "от 06 марта 2026 г."
         let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
         if (match) {
             let day = match[1].padStart(2, '0');
@@ -143,51 +150,61 @@
             let month = monthMap[match[2].toLowerCase()];
             if (month) return `${day}.${month}.${match[3]}`;
         }
+        // "от 06.03.2026"
         match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
         if (match) return `${match[1]}.${match[2]}.${match[3]}`;
+        // Просто дата в тексте (дд.мм.гггг)
         match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
         if (match) return `${match[1]}.${match[2]}.${match[3]}`;
         return null;
     }
 
-    // Извлечение суммы (без порога, только итоговая)
+    // Извлечение суммы (самое большое число с двумя знаками после запятой, плюс ключевые фразы)
     function extractAmount(text, docType) {
         if (!text) return null;
-        let match = null;
+        // Сначала ищем по ключевым фразам
+        let amount = null;
+        let patterns = [];
         if (docType === 'accept') {
-            match = text.match(/\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i);
-            if (match) {
-                let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                let num = parseFloat(raw);
-                if (!isNaN(num)) return num.toFixed(2);
-            }
-            match = text.match(/(\d[\d\s]*[.,]\d{2})\s*руб/i);
-            if (match) {
-                let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                let num = parseFloat(raw);
-                if (!isNaN(num)) return num.toFixed(2);
-            }
+            patterns = [
+                /\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i,
+                /Сумма\s+([\d\s]+[.,]\d{2})/i,
+                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i
+            ];
         } else {
-            match = text.match(/на\s+сумму\s+([\d\s]+[.,]\d{2})\s*руб/i);
-            if (match) {
-                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+            patterns = [
+                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
+                /Всего.*?на\s+сумму\s+([\d\s]+[.,]\d{2})/i,
+                /ИТОГО[:]?\s*([\d\s]+[.,]\d{2})/i
+            ];
+        }
+        for (let p of patterns) {
+            let m = text.match(p);
+            if (m && m[1]) {
+                let raw = m[1].replace(/\s/g, '').replace(',', '.');
                 let num = parseFloat(raw);
-                if (!isNaN(num)) return num.toFixed(2);
-            }
-            match = text.match(/Всего.*?на\s+сумму\s+([\d\s]+[.,]\d{2})/i);
-            if (match) {
-                let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                let num = parseFloat(raw);
-                if (!isNaN(num)) return num.toFixed(2);
-            }
-            match = text.match(/ИТОГО[:]?\s*([\d\s]+[.,]\d{2})/i);
-            if (match) {
-                let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                let num = parseFloat(raw);
-                if (!isNaN(num)) return num.toFixed(2);
+                if (!isNaN(num)) {
+                    amount = num.toFixed(2);
+                    break;
+                }
             }
         }
-        return null;
+        // Если не нашли по фразам, ищем все числа с двумя знаками после запятой и берём максимальное
+        if (!amount) {
+            let allNumbers = [];
+            let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
+            let match;
+            while ((match = regex.exec(text)) !== null) {
+                let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                let num = parseFloat(raw);
+                if (!isNaN(num)) allNumbers.push(num);
+            }
+            if (allNumbers.length > 0) {
+                let maxNum = Math.max(...allNumbers);
+                amount = maxNum.toFixed(2);
+            }
+        }
+        return amount;
     }
 
     function normalizeString(s) { return s ? String(s).trim().toLowerCase().replace(/\s+/g, '') : ''; }
@@ -207,9 +224,12 @@
         try {
             let text = await extractTextFromPDF(file);
             if (!text || text.trim() === '') throw new Error('Нет текста');
+            console.log(`=== Извлечённый текст (${idx === 0 ? 'счёт' : 'акцепт'}) ===`);
+            console.log(text);
             let number = extractNumber(text, docType);
             let date = extractDate(text);
             let amount = extractAmount(text, docType);
+            console.log(`Распознано: номер=${number}, дата=${date}, сумма=${amount}`);
             pdfData[idx] = { file, number, date, amount, loaded: true, error: false };
             updateUI(idx);
         } catch(e) {
