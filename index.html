@@ -7,36 +7,34 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
-        body { background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%); margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 1.5rem; }
-        .card { max-width: 1400px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
+        * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+        body { background: #eef2f6; margin: 0; padding: 1.5rem; display: flex; justify-content: center; }
+        .card { max-width: 1400px; width: 100%; background: white; border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
         .header { background: #1e2f4e; padding: 1rem 2rem; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
         .header h1 { margin: 0; font-size: 1.6rem; }
         .tab-buttons { display: flex; gap: 0.5rem; }
-        .tab-btn { background: #2d4a6e; border: none; color: white; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .tab-btn { background: #2d4a6e; border: none; color: white; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
         .tab-btn.active { background: #f59e0b; color: #1e2f4e; }
-        .tab-btn:hover { background: #3b5f8a; }
         .content { padding: 2rem; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .upload-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 2rem; }
         .upload-box { flex: 1; min-width: 280px; background: #f9fafc; border-radius: 1.25rem; border: 1px solid #e2e8f0; padding: 1.25rem; }
-        .upload-box h3 { margin-top: 0; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600; color: #0f2b3d; display: flex; align-items: center; gap: 0.5rem; }
-        .file-label { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
-        input[type="file"] { border: 1px solid #cbd5e1; border-radius: 2rem; padding: 0.6rem 1rem; background: white; font-size: 0.85rem; cursor: pointer; }
-        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem 1rem; margin-top: 1rem; border-left: 4px solid #3b82f6; font-size: 0.9rem; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
-        .info-label { font-weight: 600; color: #1e293b; }
+        .upload-box h3 { margin: 0 0 1rem 0; color: #0f2b3d; }
+        .file-label { margin-bottom: 1rem; }
+        input[type="file"] { width: 100%; padding: 0.5rem; border-radius: 2rem; border: 1px solid #cbd5e1; background: white; }
+        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem; margin-top: 1rem; border-left: 4px solid #3b82f6; }
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; }
+        .info-label { font-weight: 600; }
         .info-value { font-family: monospace; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; }
         .badge { font-size: 0.75rem; background: #eef2ff; border-radius: 1rem; padding: 0.2rem 0.7rem; }
-        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; border: 1px solid #eef2ff; }
-        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem 1.25rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; }
-        .result-label { font-weight: 700; font-size: 1rem; }
-        .result-status { font-weight: 700; font-size: 1.2rem; padding: 0.2rem 1rem; border-radius: 2rem; }
+        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem; border: 1px solid #eef2ff; }
+        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; }
+        .result-status { font-weight: 700; padding: 0.2rem 1rem; border-radius: 2rem; }
         .status-ok { background: #dcfce7; color: #15803d; }
         .status-fail { background: #fee2e2; color: #b91c1c; }
         .status-error { background: #fff3bf; color: #b45309; }
-        .compare-btn, .debug-btn, .ref-btn { background: #1e2f4e; border: none; padding: 0.6rem 1rem; font-weight: 600; color: white; border-radius: 2rem; cursor: pointer; margin-top: 1rem; width: auto; display: inline-block; margin-right: 0.5rem; }
+        .compare-btn, .debug-btn, .ref-btn { background: #1e2f4e; border: none; padding: 0.6rem 1rem; font-weight: 600; color: white; border-radius: 2rem; cursor: pointer; margin-top: 1rem; margin-right: 0.5rem; }
         .debug-btn { background: #4b5563; }
         .ref-btn { background: #f59e0b; color: #1e2f4e; }
         .footnote { font-size: 0.75rem; text-align: center; margin-top: 1.5rem; color: #5b6e8c; }
@@ -46,7 +44,7 @@
         .ocr-progress { font-size: 0.7rem; color: #4b5563; text-align: center; }
         #debugOutput, #refOutput { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 1rem; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin-top: 1rem; max-height: 400px; overflow: auto; display: none; }
         .ref-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .ref-table th, .ref-table td { border: 1px solid #cbd5e1; padding: 0.4rem; text-align: left; vertical-align: top; }
+        .ref-table th, .ref-table td { border: 1px solid #cbd5e1; padding: 0.4rem; text-align: left; }
         .ref-table th { background: #e2e8f0; }
         .scrollable { overflow-x: auto; }
     </style>
@@ -101,7 +99,7 @@
                 <div id="debugOutput"></div>
             </div>
             <div class="footnote">
-                🔍 Улучшенное распознавание: повышение контраста, бинаризация, поиск номера AP-6079 даже при искажениях.
+                🔍 Улучшенное OCR: дата ищется после номера счёта, сумма по фразе "сумма в руб. РФ" или "всего с НДС".
             </div>
         </div>
         <div id="refTab" class="tab-content">
@@ -121,18 +119,15 @@
         { file: null, number: null, date: null, amount: null, loaded: false, error: false, rawText: '' }
     ];
 
-    // Улучшенная предобработка изображения перед OCR
     async function preprocessImage(canvas) {
         const ctx = canvas.getContext('2d');
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        // Простая бинаризация и повышение контраста
         for (let i = 0; i < data.length; i += 4) {
             let r = data[i];
             let g = data[i+1];
             let b = data[i+2];
             let brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-            // Порог: если яркость > 150, делаем белым, иначе чёрным
             let value = brightness > 150 ? 255 : 0;
             data[i] = value;
             data[i+1] = value;
@@ -147,7 +142,6 @@
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(pageNum);
-        // Увеличиваем масштаб для лучшего качества
         const scale = 2.5;
         const viewport = page.getViewport({ scale });
         const canvas = document.createElement('canvas');
@@ -155,8 +149,6 @@
         canvas.width = viewport.width;
         canvas.height = viewport.height;
         await page.render({ canvasContext: context, viewport: viewport }).promise;
-        
-        // Применяем предобработку
         await preprocessImage(canvas);
         
         const progressDiv = document.getElementById(progressElementId);
@@ -181,7 +173,6 @@
             );
             fullText = text;
         } catch (ocrError) {
-            console.error("OCR Error:", ocrError);
             throw new Error("Не удалось распознать текст на изображении.");
         } finally {
             if (progressDiv) progressDiv.style.display = 'none';
@@ -201,7 +192,6 @@
         msgSpan.innerHTML = '⏳ Анализ документа... <span class="loading"></span>';
         
         try {
-            // Пытаемся сначала извлечь текст напрямую (для цифровых PDF)
             const arrayBuffer = await file.arrayBuffer();
             const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
             const pdf = await loadingTask.promise;
@@ -237,12 +227,8 @@
         }
     }
 
-    // Улучшенное извлечение номера: ищем AP-6079, АР-6079, AP6079 и т.п. даже с искажениями
     function extractNumber(text, docType) {
         if (!text) return null;
-        // Приводим текст к верхнему регистру для упрощения
-        const upperText = text.toUpperCase();
-        // Паттерны для буквенно-цифрового номера
         let patterns = [
             /(?:СЧЕТ|СЧЁТ).*?(?:№|NO|N)?\s*([A-ZА-Я]{2,3}[-]?\d+)/i,
             /(?:АКЦЕПТОВАН):.*?(?:СЧЁТ|СЧЕТ).*?(?:№|NO|N)?\s*([A-ZА-Я]{2,3}[-]?\d+)/i,
@@ -251,89 +237,118 @@
         ];
         for (let p of patterns) {
             let m = text.match(p);
-            if (m && m[1]) {
-                let candidate = m[1].trim();
-                // Нормализуем: заменяем русскую А на латинскую A, если нужно? Но оставим как есть.
-                return candidate;
-            }
+            if (m && m[1]) return m[1].trim();
         }
-        // Если не нашли, ищем цифровой номер (как запасной вариант)
         let digitMatch = text.match(/(?:№|NO|N)\s*(\d+)/i);
-        if (digitMatch) return digitMatch[1];
-        return null;
+        return digitMatch ? digitMatch[1] : null;
     }
 
     function extractDate(text, docType) {
         if (!text) return null;
-        // Ищем "от 11.03.2026" или "от 11 марта 2026"
-        let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
-        if (match) {
-            let day = match[1].padStart(2, '0');
-            const monthMap = { 'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12' };
-            let month = monthMap[match[2].toLowerCase()];
-            if (month) return `${day}.${month}.${match[3]}`;
+        // Для счёта: ищем дату после номера счёта
+        if (docType !== 'accept') {
+            // Находим номер счёта в тексте
+            let numberMatch = text.match(/(AP|АР)[-]?\d+/i);
+            if (numberMatch) {
+                let idx = text.indexOf(numberMatch[0]);
+                let context = text.substring(idx, idx + 300);
+                // Ищем дату в этом контексте
+                let dateMatch = context.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
+                if (!dateMatch) {
+                    dateMatch = context.match(/(\d{2})\.(\d{2})\.(\d{4})/);
+                }
+                if (!dateMatch) {
+                    dateMatch = context.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
+                    if (dateMatch) {
+                        let day = dateMatch[1].padStart(2,'0');
+                        const monthMap = {'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12'};
+                        let month = monthMap[dateMatch[2].toLowerCase()];
+                        if (month) return `${day}.${month}.${dateMatch[3]}`;
+                    }
+                }
+                if (dateMatch) return `${dateMatch[1]}.${dateMatch[2]}.${dateMatch[3]}`;
+            }
+            // fallback: ищем "дата" и дату
+            let dateLabelMatch = text.match(/дата\s+(\d{2})\.(\d{2})\.(\d{4})/i);
+            if (dateLabelMatch) return `${dateLabelMatch[1]}.${dateLabelMatch[2]}.${dateLabelMatch[3]}`;
         }
-        match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
+        // Общий поиск
+        let match = text.match(/от\s+(\d{2})\.(\d{2})\.(\d{4})/);
         if (match) return `${match[1]}.${match[2]}.${match[3]}`;
         match = text.match(/(\d{2})\.(\d{2})\.(\d{4})/);
         if (match) return `${match[1]}.${match[2]}.${match[3]}`;
+        match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
+        if (match) {
+            let day = match[1].padStart(2,'0');
+            const monthMap = {'января':'01','февраля':'02','марта':'03','апреля':'04','мая':'05','июня':'06','июля':'07','августа':'08','сентября':'09','октября':'10','ноября':'11','декабря':'12'};
+            let month = monthMap[match[2].toLowerCase()];
+            if (month) return `${day}.${month}.${match[3]}`;
+        }
         return null;
     }
 
     function extractAmount(text, docType) {
         if (!text) return null;
         let amount = null;
-        let patterns = [];
         if (docType === 'accept') {
-            patterns = [
+            let patterns = [
                 /\|\s*Сумма\s*\|\s*([\d\s]+[.,]\d{2})/i,
                 /Сумма\s+([\d\s]+[.,]\d{2})/i,
                 /на\s+сумму\s+([\d\s]+[.,]\d{2})/i
             ];
-        } else {
-            patterns = [
-                /сумма\s+в\s+руб\.?\s*рф\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /всего\s+с\s+ндс\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /Итого:\s*([\d\s]+[.,]\d{2})/i,
-                /Всего\s+к\s+оплате\s*:?\s*([\d\s]+[.,]\d{2})/i,
-                /на\s+сумму\s+([\d\s]+[.,]\d{2})/i
-            ];
-        }
-        for (let p of patterns) {
-            let m = text.match(p);
-            if (m && m[1]) {
-                let raw = m[1].replace(/\s/g, '').replace(',', '.');
-                let num = parseFloat(raw);
-                if (!isNaN(num) && num > 100) {
-                    amount = num.toFixed(2);
-                    break;
+            for (let p of patterns) {
+                let m = text.match(p);
+                if (m && m[1]) {
+                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
+                    let num = parseFloat(raw);
+                    if (!isNaN(num)) { amount = num.toFixed(2); break; }
                 }
             }
-        }
-        if (!amount && docType !== 'accept') {
-            // Ищем все числа, берём последнее, которое похоже на итог (не слишком маленькое)
-            let allNumbers = [];
-            let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-            let match;
-            while ((match = regex.exec(text)) !== null) {
-                let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                let num = parseFloat(raw);
-                if (!isNaN(num) && num > 100 && num < 1000000) allNumbers.push(num);
+            if (!amount) {
+                let allNumbers = [];
+                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                    let num = parseFloat(raw);
+                    if (!isNaN(num)) allNumbers.push(num);
+                }
+                if (allNumbers.length > 0) amount = Math.max(...allNumbers).toFixed(2);
             }
-            if (allNumbers.length > 0) {
-                amount = allNumbers[allNumbers.length - 1].toFixed(2);
+        } else {
+            // Для счёта: приоритет фразам "сумма в руб. РФ" и "всего с НДС"
+            let patterns = [
+                /сумма\s+в\s+руб\.?\s*рф\s*:?\s*([\d\s]+[.,]\d{2})/i,
+                /всего\s+с\s+ндс\s*:?\s*([\d\s]+[.,]\d{2})/i,
+                /Итого\s+с\s+НДС\s*:?\s*([\d\s]+[.,]\d{2})/i,
+                /Итого:\s*([\d\s]+[.,]\d{2})/i,
+                /Всего\s+к\s+оплате\s*:?\s*([\d\s]+[.,]\d{2})/i
+            ];
+            for (let p of patterns) {
+                let m = text.match(p);
+                if (m && m[1]) {
+                    let raw = m[1].replace(/\s/g, '').replace(',', '.');
+                    let num = parseFloat(raw);
+                    if (!isNaN(num) && num > 100 && num < 1000000) {
+                        amount = num.toFixed(2);
+                        break;
+                    }
+                }
             }
-        }
-        if (!amount && docType === 'accept') {
-            let allNumbers = [];
-            let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
-            let match;
-            while ((match = regex.exec(text)) !== null) {
-                let raw = match[1].replace(/\s/g, '').replace(',', '.');
-                let num = parseFloat(raw);
-                if (!isNaN(num)) allNumbers.push(num);
+            if (!amount) {
+                // Берём последнее число в документе (обычно итоговая сумма)
+                let allNumbers = [];
+                let regex = /(\d+(?:[\s,.]?\d+)*[.,]\d{2})/g;
+                let match;
+                while ((match = regex.exec(text)) !== null) {
+                    let raw = match[1].replace(/\s/g, '').replace(',', '.');
+                    let num = parseFloat(raw);
+                    if (!isNaN(num) && num > 100 && num < 1000000) allNumbers.push(num);
+                }
+                if (allNumbers.length > 0) {
+                    amount = allNumbers[allNumbers.length - 1].toFixed(2);
+                }
             }
-            if (allNumbers.length > 0) amount = Math.max(...allNumbers).toFixed(2);
         }
         return amount;
     }
@@ -468,7 +483,7 @@
         ];
         function renderTable(title, headers, rows) {
             let html = `<h4>${title}</h4><div class="scrollable"><table class="ref-table">`;
-            html += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</td></thead><tbody>`;
+            html += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
             for (let row of rows) {
                 html += `<tr>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`;
             }
