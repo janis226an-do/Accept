@@ -3,86 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Сверка счетов: номер, дата, сумма (с поддержкой сканов)</title>
+    <title>Сверка счетов: номер, дата, сумма (с поддержкой сканов + справочник)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         * { box-sizing: border-box; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
         body { background: linear-gradient(145deg, #f5f7fc 0%, #eef2f6 100%); margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 1.5rem; }
-        .card { max-width: 1300px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
-        .header { background: #1e2f4e; padding: 1.5rem 2rem; color: white; }
-        .header h1 { margin: 0; font-weight: 600; font-size: 1.8rem; }
-        .header p { margin: 0.5rem 0 0; opacity: 0.85; font-size: 0.95rem; }
+        .card { max-width: 1400px; width: 100%; background: rgba(255,255,255,0.95); border-radius: 2rem; box-shadow: 0 25px 45px -12px rgba(0,0,0,0.25); overflow: hidden; }
+        .header { background: #1e2f4e; padding: 1rem 2rem; color: white; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .header h1 { margin: 0; font-size: 1.6rem; }
+        .tab-buttons { display: flex; gap: 0.5rem; }
+        .tab-btn { background: #2d4a6e; border: none; color: white; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        .tab-btn.active { background: #f59e0b; color: #1e2f4e; }
+        .tab-btn:hover { background: #3b5f8a; }
         .content { padding: 2rem; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
         .upload-grid { display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 2rem; }
         .upload-box { flex: 1; min-width: 280px; background: #f9fafc; border-radius: 1.25rem; border: 1px solid #e2e8f0; padding: 1.25rem; }
         .upload-box h3 { margin-top: 0; margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600; color: #0f2b3d; display: flex; align-items: center; gap: 0.5rem; }
         .file-label { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
         input[type="file"] { border: 1px solid #cbd5e1; border-radius: 2rem; padding: 0.6rem 1rem; background: white; font-size: 0.85rem; cursor: pointer; }
-        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem 1rem; margin-top: 1rem; border-left: 4px solid #3b82f6; font-size: 0.9rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .extracted-info { background: white; border-radius: 1rem; padding: 0.8rem 1rem; margin-top: 1rem; border-left: 4px solid #3b82f6; font-size: 0.9rem; }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem; }
         .info-label { font-weight: 600; color: #1e293b; }
-        .info-value { font-family: 'SF Mono', monospace; color: #0f3b2c; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; word-break: break-all; }
-        .badge { font-size: 0.75rem; background: #eef2ff; border-radius: 1rem; padding: 0.2rem 0.7rem; color: #1e40af; }
-        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; box-shadow: 0 8px 20px rgba(0,0,0,0.05); border: 1px solid #eef2ff; }
-        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem 1.25rem; margin-bottom: 0.75rem; display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
-        .result-label { font-weight: 700; font-size: 1rem; color: #0f172a; }
+        .info-value { font-family: monospace; background: #f1f5f9; padding: 0.2rem 0.6rem; border-radius: 1rem; }
+        .badge { font-size: 0.75rem; background: #eef2ff; border-radius: 1rem; padding: 0.2rem 0.7rem; }
+        .result-area { background: #ffffff; border-radius: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; border: 1px solid #eef2ff; }
+        .result-item { background: #f8fafc; border-radius: 1rem; padding: 0.75rem 1.25rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; }
+        .result-label { font-weight: 700; font-size: 1rem; }
         .result-status { font-weight: 700; font-size: 1.2rem; padding: 0.2rem 1rem; border-radius: 2rem; }
         .status-ok { background: #dcfce7; color: #15803d; }
         .status-fail { background: #fee2e2; color: #b91c1c; }
         .status-error { background: #fff3bf; color: #b45309; }
-        .compare-btn { background: #1e2f4e; border: none; padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; color: white; border-radius: 3rem; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 1rem; }
-        .compare-btn:hover { background: #0f2b3d; transform: translateY(-1px); }
+        .compare-btn, .debug-btn, .ref-btn { background: #1e2f4e; border: none; padding: 0.6rem 1rem; font-weight: 600; color: white; border-radius: 2rem; cursor: pointer; margin-top: 1rem; width: auto; display: inline-block; margin-right: 0.5rem; }
+        .debug-btn { background: #4b5563; }
+        .ref-btn { background: #f59e0b; color: #1e2f4e; }
+        .footnote { font-size: 0.75rem; text-align: center; margin-top: 1.5rem; color: #5b6e8c; }
         .loading { display: inline-block; width: 18px; height: 18px; border: 2px solid #cbd5e1; border-radius: 50%; border-top-color: #1e2f4e; animation: spin 0.6s linear infinite; margin-left: 8px; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .footnote { font-size: 0.75rem; text-align: center; margin-top: 1.5rem; color: #5b6e8c; border-top: 1px solid #e2edf2; padding-top: 1rem; }
         progress { width: 100%; height: 10px; border-radius: 5px; margin: 5px 0; }
         .ocr-progress { font-size: 0.7rem; color: #4b5563; text-align: center; }
+        #debugOutput, #refOutput { background: #1e1e1e; color: #d4d4d4; padding: 1rem; border-radius: 1rem; font-family: monospace; font-size: 0.8rem; white-space: pre-wrap; margin-top: 1rem; max-height: 400px; overflow: auto; display: none; }
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .ref-table th, .ref-table td { border: 1px solid #cbd5e1; padding: 0.4rem; text-align: left; vertical-align: top; }
+        .ref-table th { background: #e2e8f0; }
+        .scrollable { overflow-x: auto; }
     </style>
 </head>
 <body>
 <div class="card">
     <div class="header">
-        <h1>📄 Сверка счетов на оплату (с поддержкой сканов)</h1>
-        <p>Загрузите счёт на оплату и акцепт. Система распознает текст даже со сканированных изображений с помощью OCR.</p>
+        <h1>📄 Сверка счетов на оплату</h1>
+        <div class="tab-buttons">
+            <button class="tab-btn active" data-tab="main">Главная</button>
+            <button class="tab-btn" data-tab="ref">Справочник</button>
+        </div>
     </div>
     <div class="content">
-        <div class="upload-grid">
-            <div class="upload-box">
-                <h3>📎 Документ: счёт на оплату</h3>
-                <div class="file-label">
-                    <input type="file" id="pdf1Input" accept="application/pdf">
+        <!-- Главная вкладка -->
+        <div id="mainTab" class="tab-content active">
+            <div class="upload-grid">
+                <div class="upload-box">
+                    <h3>📎 Документ: счёт на оплату</h3>
+                    <div class="file-label">
+                        <input type="file" id="pdf1Input" accept="application/pdf">
+                    </div>
+                    <div id="pdf1Status" class="extracted-info">
+                        <div class="info-row"><span class="info-label">📌 Номер счета:</span><span class="info-value" id="pdf1Number">—</span></div>
+                        <div class="info-row"><span class="info-label">📅 Дата счета:</span><span class="info-value" id="pdf1Date">—</span></div>
+                        <div class="info-row"><span class="info-label">💰 Сумма:</span><span class="info-value" id="pdf1Amount">—</span></div>
+                        <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf1Msg" class="badge">Ожидание загрузки</span></div>
+                        <div id="pdf1Progress" class="ocr-progress" style="display:none;"></div>
+                    </div>
                 </div>
-                <div id="pdf1Status" class="extracted-info">
-                    <div class="info-row"><span class="info-label">📌 Номер счета:</span><span class="info-value" id="pdf1Number">—</span></div>
-                    <div class="info-row"><span class="info-label">📅 Дата счета:</span><span class="info-value" id="pdf1Date">—</span></div>
-                    <div class="info-row"><span class="info-label">💰 Сумма:</span><span class="info-value" id="pdf1Amount">—</span></div>
-                    <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf1Msg" class="badge">Ожидание загрузки</span></div>
-                    <div id="pdf1Progress" class="ocr-progress" style="display:none;"></div>
+                <div class="upload-box">
+                    <h3>📎 Документ: акцепт</h3>
+                    <div class="file-label">
+                        <input type="file" id="pdf2Input" accept="application/pdf">
+                    </div>
+                    <div id="pdf2Status" class="extracted-info">
+                        <div class="info-row"><span class="info-label">📌 Номер счета:</span><span class="info-value" id="pdf2Number">—</span></div>
+                        <div class="info-row"><span class="info-label">📅 Дата счета:</span><span class="info-value" id="pdf2Date">—</span></div>
+                        <div class="info-row"><span class="info-label">💰 Сумма:</span><span class="info-value" id="pdf2Amount">—</span></div>
+                        <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf2Msg" class="badge">Ожидание загрузки</span></div>
+                        <div id="pdf2Progress" class="ocr-progress" style="display:none;"></div>
+                    </div>
                 </div>
             </div>
-            <div class="upload-box">
-                <h3>📎 Документ: акцепт</h3>
-                <div class="file-label">
-                    <input type="file" id="pdf2Input" accept="application/pdf">
+            <div class="result-area">
+                <div class="result-item"><span class="result-label">🧾 Номер счёта на оплату:</span><span id="resultNumber" class="result-status">—</span></div>
+                <div class="result-item"><span class="result-label">📅 Дата счёта на оплату:</span><span id="resultDate" class="result-status">—</span></div>
+                <div class="result-item"><span class="result-label">💰 Сумма:</span><span id="resultAmount" class="result-status">—</span></div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button id="compareBtn" class="compare-btn">🔄 Сравнить</button>
+                    <button id="debugBtn" class="debug-btn">🐞 Показать отладку</button>
                 </div>
-                <div id="pdf2Status" class="extracted-info">
-                    <div class="info-row"><span class="info-label">📌 Номер счета:</span><span class="info-value" id="pdf2Number">—</span></div>
-                    <div class="info-row"><span class="info-label">📅 Дата счета:</span><span class="info-value" id="pdf2Date">—</span></div>
-                    <div class="info-row"><span class="info-label">💰 Сумма:</span><span class="info-value" id="pdf2Amount">—</span></div>
-                    <div class="info-row"><span class="info-label">⚙️ Статус:</span><span id="pdf2Msg" class="badge">Ожидание загрузки</span></div>
-                    <div id="pdf2Progress" class="ocr-progress" style="display:none;"></div>
-                </div>
+                <div id="debugOutput"></div>
+            </div>
+            <div class="footnote">
+                🔍 Для сканов автоматически запускается OCR. Если данные не распознаются, нажмите «Показать отладку».
             </div>
         </div>
-        <div class="result-area">
-            <div class="result-item"><span class="result-label">🧾 Номер счёта на оплату:</span><span id="resultNumber" class="result-status">—</span></div>
-            <div class="result-item"><span class="result-label">📅 Дата счёта на оплату:</span><span id="resultDate" class="result-status">—</span></div>
-            <div class="result-item"><span class="result-label">💰 Сумма:</span><span id="resultAmount" class="result-status">—</span></div>
-            <button id="compareBtn" class="compare-btn">🔄 Сравнить документы</button>
-        </div>
-        <div class="footnote">
-            🔍 Если документ сканированный, автоматически запускается OCR (Tesseract.js). Распознавание может занять до 30 секунд на страницу.
+
+        <!-- Справочник -->
+        <div id="refTab" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+                <h3>📚 Справочная информация (объекты, участки, ГК/ИГК)</h3>
+                <button id="closeRefBtn" class="ref-btn" style="background: #6c757d;">✖ Скрыть</button>
+            </div>
+            <div id="refOutput" style="display: block; max-height: 600px; overflow-y: auto;">
+                <!-- Данные будут загружены из JavaScript -->
+            </div>
         </div>
     </div>
 </div>
@@ -183,20 +215,26 @@
         }
     }
 
-    // --- Улучшенное извлечение номера счёта (гибкое) ---
+    // Улучшенное извлечение номера: для акцепта ищем буквенно-цифровой номер после "Акцептован: Счёт №"
     function extractNumber(text, docType) {
         if (!text) return null;
-        let patterns = [];
         if (docType === 'accept') {
-            patterns = [
-                /Акцептован:\s*Счёт\s*(?:№|No|N)\s*(\d+)/i,
-                /Акцептован:\s*Счет\s*(?:№|No|N)\s*(\d+)/i,
-                /Счёт\s*(?:№|No|N)\s*(\d+)/i,
-                /Счет\s*(?:№|No|N)\s*(\d+)/i,
-                /(?:№|No|N)\s*(\d+)/i
-            ];
+            // Ищем "Акцептован: Счёт № АР-6079" или "Счёт № АР-6079"
+            let match = text.match(/Акцептован:\s*Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            match = text.match(/Акцептован:\s*Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            match = text.match(/Счёт\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            match = text.match(/Счет\s*(?:№|No|N)\s*([A-Za-zА-Яа-я0-9\-]+)/i);
+            if (match && match[1]) return match[1].trim();
+            // fallback: просто цифры
+            match = text.match(/(?:№|No|N)\s*(\d+)/i);
+            if (match) return match[1];
+            return null;
         } else {
-            patterns = [
+            // Счёт на оплату: ищем цифры
+            let patterns = [
                 /Счет\s*на\s*оплату\s*(?:№|No|N)\s*(\d+)/i,
                 /Счёт\s*на\s*оплату\s*(?:№|No|N)\s*(\d+)/i,
                 /Счет\s*(?:№|No|N)\s*(\d+)/i,
@@ -206,29 +244,22 @@
                 /(?:№|No|N)\s*(\d+)\s+от/i,
                 /(?:№|No|N)\s*(\d+)/i
             ];
+            for (let p of patterns) {
+                let m = text.match(p);
+                if (m && m[1]) return m[1].trim();
+            }
+            return null;
         }
-        for (let p of patterns) {
-            let m = text.match(p);
-            if (m && m[1]) return m[1].trim();
-        }
-        return null;
     }
 
-    // --- Улучшенное извлечение даты: ищем сразу после номера счёта ---
     function extractDate(text, docType) {
         if (!text) return null;
-        // Сначала пытаемся найти дату в той же строке/блоке, где есть номер счёта
+        // Сначала ищем дату в блоке счёта
         let invoiceBlock = null;
         if (docType !== 'accept') {
-            // Ищем фразу "Счет на оплату № X от ..."
             let matchBlock = text.match(/Счет\s*на\s*оплату\s*(?:№|No|N)\s*\d+\s*от\s*([^\.]{5,50})/i);
-            if (matchBlock) {
-                invoiceBlock = matchBlock[1];
-            } else {
-                // Если нет, ищем просто "Счет № X от ..."
-                matchBlock = text.match(/Счет\s*(?:№|No|N)\s*\d+\s*от\s*([^\.]{5,50})/i);
-                if (matchBlock) invoiceBlock = matchBlock[1];
-            }
+            if (!matchBlock) matchBlock = text.match(/Счет\s*(?:№|No|N)\s*\d+\s*от\s*([^\.]{5,50})/i);
+            if (matchBlock) invoiceBlock = matchBlock[1];
             if (invoiceBlock) {
                 let dateMatch = invoiceBlock.match(/(\d{1,2})\s+([а-я]+)\s+(\d{4})/i);
                 if (dateMatch) {
@@ -241,8 +272,7 @@
                 if (dateMatchDot) return `${dateMatchDot[1]}.${dateMatchDot[2]}.${dateMatchDot[3]}`;
             }
         }
-        
-        // Если не нашли в блоке счёта, пробуем обычные паттерны (для акцепта и как fallback)
+        // Общие паттерны
         let match = text.match(/от\s+(\d{1,2})\s+([а-я]+)\s+(\d{4})\s*г\.?/i);
         if (match) {
             let day = match[1].padStart(2, '0');
@@ -257,7 +287,6 @@
         return null;
     }
 
-    // --- Извлечение суммы (оставляем прежним, он работает) ---
     function extractAmount(text, docType) {
         if (!text) return null;
         let amount = null;
@@ -367,6 +396,100 @@
         setRes(resultAmountSpan, compareFields(d1.amount, d2.amount));
     }
 
+    function showDebug() {
+        let output = '';
+        for (let i = 0; i < 2; i++) {
+            let d = pdfData[i];
+            output += `=== ${i === 0 ? 'СЧЁТ' : 'АКЦЕПТ'} ===\n`;
+            output += `Загружен: ${d.file ? d.file.name : 'нет'}\n`;
+            output += `Ошибка: ${d.error ? 'да' : 'нет'}\n`;
+            output += `Распознано: номер=${d.number}, дата=${d.date}, сумма=${d.amount}\n`;
+            output += `Текст (первые 1000 символов):\n${(d.rawText || '').substring(0, 1000)}\n\n`;
+        }
+        const debugDiv = document.getElementById('debugOutput');
+        debugDiv.innerText = output;
+        debugDiv.style.display = 'block';
+    }
+
+    // === Справочник: данные из Excel (сокращённо, основные строки) ===
+    function buildReference() {
+        const refDiv = document.getElementById('refOutput');
+        // Данные из файла (первые листы)
+        const objectsData = [
+            ["№ п/п", "Источник оплат", "Код", "Участок", "Начальник участка"],
+            ["1", "Этап 3. Участок Северо-Восточной хорды от Северной рокады...", "516_1", "участок 10", ""],
+            ["2", "ЮВХ участок №1. Этап 3. \"Участок от 5-ой Кабельной улицы до СВХ\"", "521", "участок 2", "Федорчук В.Л."],
+            ["3", "ЮВХ участок №1. Этап 2. \"Участок от ж/д ветки Бойня-Перово до 5-ой Кабельной улицы\"", "521_2", "участок 9", ""],
+            ["4", "Строительство путепровода через железную дорогу в районе платформы Быково", "584", "участок 5", "Хаперских А.В."],
+            ["5", "Строительство мостового сооружения через р. Москва в створе улицы Мясищева", "592", "участок 4", "Раевский Н.А."],
+            ["6", "Лыткарино. Автодорожный тоннель в г.Видное. Подпорные стены...", "595_1", "участок 1", "Ходюшин Н.В."],
+            ["7", "Лыткарино. Эстакада (ИССО 3.10), путепровод (ИССО 3.11.1)...", "595_2", "участок 8", "Ходюшин Н.В."],
+            ["8", "2 этап СБВ. Этап 1.2. Участок магистрали \"Солнцево-Бутово-Варшавское шоссе\"...", "600", "участок 6 и 7", "Шапкарин Р.О. / Салахетдинов А.И."],
+            ["9", "Участок магистрали 4ТК от ш.Энтузиастов до Измайловского ш. (2ПК)", "615", "участок 2", ""],
+            ["10", "Строительство мостового сооружения через р.Москва вблизи улицы Новозаводская", "617", "участок 4", "Раевский Н.А."],
+            ["11", "Создание ВСЖМ СПб – Москва (участок Крюково – Обухово). 6 этап", "627", "участок 13", ""],
+            ["12", "Основные работы. ВСЖМ СПб – Москва (участок Крюково – Обухово). 6 этап", "627_1", "участки 14,18,19", "Сидорин Ю.Е., Сагдуллаев Р.М., Афанасьев И.В."],
+            ["13", "Автодорожный путепровод через Рижское направление МЖД", "640", "участок 3", ""],
+            ["14", "Строительство транспортной развязки и мостовых сооружений на территории Мневниковской поймы", "641", "участок 3", "Бурдонов С.А."],
+            ["15", "Строительство ИССО через ж/д пути Курского направления МЖД для соединения 2-ой Мелитопольской", "648", "участок 11", ""],
+            ["16", "Проектирование и строительство улично-дорожной сети вдоль МК МЖД от улицы Трофимова до Севастопольского проспекта", "678", "участок 30", "Салахетдинов А.И."],
+            ["17", "Островная и Филевский", "692", "участок 3", "Бурдонов С.А."],
+            ["18", "Строительство Полигона №10 «Селинское» на ВСЖМ СПб-Москва, ПК5695", "694_10", "участок 15", "Башкиров В.А."]
+        ];
+        const participantsData = [
+            ["ФИО", "Должность", "Код объекта", "Участок", "Подразделение"],
+            ["Ходюшин Николай Викторович", "Начальник СМУ", "595_1", "№1", "СМУ №1"],
+            ["Бурдонов Сергей Андреевич", "Начальник СМУ", "641,692", "№3", "СМУ №3"],
+            ["Раевский Николай Андреевич", "Начальник СМУ", "592,617", "№4", "СМУ №4"],
+            ["Хаперских Алексей Валериевич", "Начальник СМУ", "584", "№5", "СМУ №5"],
+            ["Шапкарин Роман Олегович", "Начальник СМУ", "600", "№6", "СМУ №6"],
+            ["Салахетдинов Айрат Ирфанович", "Начальник СМУ", "600,678", "№7,30", "СМУ №7"],
+            ["Сидорин Юрий Евгеньевич", "Начальник СМУ", "627_1", "№14", "СМУ №14"],
+            ["Башкиров В.А.", "Начальник СМУ", "694_10", "№15", "СМУ №15"]
+        ];
+        const gkData = [
+            ["Код объекта", "Государственный контракт / Договор подряда", "ИГК"],
+            ["600", "ГК № 0173200001423000160 от 15.03.2023", "0000027728381587230000600"],
+            ["521", "ГК № 0173200001420000106 от 24.03.2020", "0000027728381587200000670"],
+            ["584", "ГК № 1/2021-47 от 14.12.2021", "003000110825P0A0004820037"],
+            ["595_1", "Договор субподряда № 50/02 от 30.01.2023", "0M0D246741000001200002001"],
+            ["627_1", "Договор подряда № 6237954 от 29.08.2025", "-"],
+            ["640", "ГК № 0173200001424001774 от 02.12.2024", "-"],
+            ["648", "ГК № 0173200001424001945 от 23.12.2024", "-"],
+            ["678", "Договор генподряда б/н от 12.12.2025", "-"]
+        ];
+        function renderTable(title, headers, rows) {
+            let html = `<h4>${title}</h4><div class="scrollable"><table class="ref-table">`;
+            html += `<thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>`;
+            for (let row of rows) {
+                html += `<tr>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`;
+            }
+            html += `</tbody></table></div><br>`;
+            return html;
+        }
+        let fullHtml = renderTable("📋 Строительные объекты и участки", objectsData[0], objectsData.slice(1));
+        fullHtml += renderTable("👥 Руководители участков", participantsData[0], participantsData.slice(1));
+        fullHtml += renderTable("📄 Госконтракты и ИГК", gkData[0], gkData.slice(1));
+        fullHtml += `<p class="footnote">* Данные приведены на основе предоставленного Excel-файла (актуальны на 03.03.2026).</p>`;
+        refDiv.innerHTML = fullHtml;
+    }
+
+    // Переключение вкладок
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId + 'Tab').classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (tabId === 'ref') buildReference();
+        });
+    });
+    document.getElementById('closeRefBtn')?.addEventListener('click', () => {
+        document.querySelector('.tab-btn[data-tab="main"]').click();
+    });
+
+    // Обработчики событий
     document.getElementById('pdf1Input').addEventListener('change', async e => {
         await loadPDF(e.target.files[0], 0, 'invoice');
         updateComparison();
@@ -375,7 +498,8 @@
         await loadPDF(e.target.files[0], 1, 'accept');
         updateComparison();
     });
-    document.getElementById('compareBtn').addEventListener('click', () => updateComparison());
+    document.getElementById('compareBtn').addEventListener('click', updateComparison);
+    document.getElementById('debugBtn').addEventListener('click', showDebug);
 
     const resultNumberSpan = document.getElementById('resultNumber');
     const resultDateSpan = document.getElementById('resultDate');
